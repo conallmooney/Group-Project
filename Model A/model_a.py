@@ -7,6 +7,7 @@ import streamlit as st
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))  # find data.py
 from data import load_world_bank
+from style import REGION_COLOURS
 
 # What happened in key years (shown under the chart)
 EVENTS = {
@@ -53,11 +54,13 @@ def render(scenario: dict | None = None) -> None:
         hover_name="name", text="label",
         animation_frame="year", animation_group="name",
         size_max=55, range_x=[-5, 20],
+        color_discrete_map=REGION_COLOURS,
+        category_orders={"region": list(REGION_COLOURS)},
         range_y=[-15, 15] if y_col == "gdp_growth" else [0, 30],
         labels={"inflation": "Inflation (%)", y_col: y_label, "region": "Region"},
     )
     fig.update_traces(textposition="top center")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, theme=None)
 
     # --- Explain a year ---
     years = sorted(plot_df["year"].unique())
