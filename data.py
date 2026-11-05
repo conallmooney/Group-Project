@@ -31,6 +31,9 @@ def _download_world_bank(start: int, end: int) -> pd.DataFrame:
     tidy = long.pivot_table(index=["economy", "year"], columns="series",
                             values="value").reset_index()
     tidy = tidy.rename(columns=WB_SERIES)
+    missing = [col for col in WB_SERIES.values() if col not in tidy.columns]
+    if missing or tidy.empty:
+        raise ValueError(f"World Bank data is missing: {missing}")
     info = wb.economy.DataFrame(skipAggs=True)[["name", "region"]]
     info["region"] = info["region"].map(REGION_NAMES)
     tidy = tidy.merge(info, left_on="economy", right_index=True)
