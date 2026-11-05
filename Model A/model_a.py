@@ -45,15 +45,18 @@ def complete_years(df: pd.DataFrame, share: float = 0.8) -> pd.DataFrame:
 
 
 def bubble_chart(plot_df: pd.DataFrame, y_col: str, y_label: str):
-    """Gapminder-style animated bubble chart: inflation vs growth or unemployment."""
+    """Gapminder-style animated bubble chart: inflation vs growth or unemployment.
+    Bubble size = GDP in US dollars."""
     fig = px.scatter(
         plot_df, x="inflation", y=y_col, size="gdp_usd", color="region",
         hover_name="name", text="label",
+        hover_data={"gdp_tn": ":.2f", "gdp_usd": False, "label": False},
         animation_frame="year", animation_group="name",
         size_max=55, range_x=X_RANGE, range_y=Y_RANGES[y_col],
         color_discrete_map=REGION_COLOURS,
         category_orders={"region": list(REGION_COLOURS)},
-        labels={"inflation": "Inflation (%)", y_col: y_label, "region": "Region"},
+        labels={"inflation": "Inflation (%)", y_col: y_label, "region": "Region",
+                "gdp_tn": "GDP (US$ trillion)"},
     )
     fig.update_traces(textposition="top center")
     return fig
@@ -103,10 +106,13 @@ def render(scenario: dict | None = None) -> None:
         return
     plot_df = complete_years(plot_df)
     plot_df["label"] = plot_df["name"].where(plot_df["name"] == highlight, "")
+    plot_df["gdp_tn"] = plot_df["gdp_usd"] / 1e12  # GDP in trillions, for the hover
 
     # --- Chart ---
     if view == "Bubbles":
         fig = bubble_chart(plot_df, y_col, y_label)
+        st.caption("Bubble size = GDP in US dollars, so bigger bubbles are bigger economies. "
+                   "Hover over a bubble to see its GDP.")
     else:
         fig = globe_chart(plot_df)
         st.caption("Drag the globe to spin it. Press ▶ to watch inflation spread in 2021–22.")
@@ -122,8 +128,13 @@ def render(scenario: dict | None = None) -> None:
     st.markdown(f"**{year}: {event}.** {high} of {len(that_year)} "
                 f"countries shown had inflation above 5%.")
 
-    # Countries outside the bubble chart's axes, named so nothing is hidden
     if view == "Bubbles":
+        # A reference point for bubble size: the largest economy that year
+        biggest = that_year.loc[that_year["gdp_usd"].idxmax()]
+        st.caption(f"Largest bubble in {year}: {biggest['name']} "
+                   f"(about US${biggest['gdp_tn']:.1f} trillion).")
+
+        # Countries outside the bubble chart's axes, named so nothing is hidden
         y_lo, y_hi = Y_RANGES[y_col]
         off = that_year[
             (that_year["inflation"] < X_RANGE[0]) | (that_year["inflation"] > X_RANGE[1])
