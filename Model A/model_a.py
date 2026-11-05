@@ -1,4 +1,4 @@
-"""Panel 1: The global shock, an animated bubble chart of inflation vs growth."""
+"""Panel 1: The global shock. Animated bubble chart with a spinning-globe view of the same data."""
 import sys
 from pathlib import Path
 
@@ -44,30 +44,8 @@ def complete_years(df: pd.DataFrame, share: float = 0.8) -> pd.DataFrame:
     return df[df["year"].isin(good_years)]
 
 
-def render(scenario: dict | None = None) -> None:
-    """Draw Panel 1. It shows history, so it doesn't use the scenario."""
-    st.subheader("Inflation hit almost every economy at once in 2022")
-    df = load_world_bank()
-
-    # --- Controls ---
-    col1, col2, col3 = st.columns(3)
-    y_label = col1.selectbox("Y-axis", list(Y_OPTIONS))
-    all_regions = sorted(df["region"].dropna().unique())
-    regions = col2.multiselect("Regions", all_regions, default=all_regions)
-    names = sorted(df["name"].unique())
-    highlight = col3.selectbox("Highlight", names, index=names.index("Ireland"))
-
-    # --- Filter the data for the chart ---
-    y_col = Y_OPTIONS[y_label]
-    plot_df = df[df["region"].isin(regions)]
-    plot_df = plot_df.dropna(subset=["inflation", y_col, "gdp_usd"]).copy()
-    if plot_df.empty:
-        st.info("Pick at least one region to see the chart.")
-        return
-    plot_df = complete_years(plot_df)
-    plot_df["label"] = plot_df["name"].where(plot_df["name"] == highlight, "")
-
-    # --- Chart ---
+def bubble_chart(plot_df: pd.DataFrame, y_col: str, y_label: str):
+    """Gapminder-style animated bubble chart: inflation vs growth or unemployment."""
     fig = px.scatter(
         plot_df, x="inflation", y=y_col, size="gdp_usd", color="region",
         hover_name="name", text="label",
@@ -78,6 +56,60 @@ def render(scenario: dict | None = None) -> None:
         labels={"inflation": "Inflation (%)", y_col: y_label, "region": "Region"},
     )
     fig.update_traces(textposition="top center")
+    return fig
+
+
+def globe_chart(plot_df: pd.DataFrame):
+    """Spinning 3D globe with each country coloured by its inflation rate."""
+    fig = px.choropleth(
+        plot_df, locations="economy", color="inflation", hover_name="name",
+        animation_frame="year", projection="orthographic",
+        color_continuous_scale="RdYlBu_r", range_color=[0, 15],
+        labels={"inflation": "Inflation (%)"},
+    )
+    fig.update_geos(
+        showocean=True, oceancolor="#E1EFF4",
+        showcountries=True, countrycolor="white",
+        showframe=False, projection_rotation=dict(lon=-10, lat=35),  # starts over Europe
+    )
+    fig.update_layout(height=520, margin=dict(l=0, r=0, t=10, b=0))
+    return fig
+
+
+def render(scenario: dict | None = None) -> None:
+    """Draw Panel 1. It shows history, so it doesn't use the scenario."""
+    st.subheader("Inflation hit almost every economy at once in 2022")
+    df = load_world_bank()
+
+    # --- Controls ---
+    view = st.radio("View", ["Bubbles", "Globe"], horizontal=True)
+    col1, col2, col3 = st.columns(3)
+    y_label = col1.selectbox("Y-axis (bubbles view)", list(Y_OPTIONS),
+                             disabled=view != "Bubbles")
+    all_regions = sorted(df["region"].dropna().unique())
+    regions = col2.multiselect("Regions", all_regions, default=all_regions)
+    names = sorted(df["name"].unique())
+    highlight = col3.selectbox("Highlight", names, index=names.index("Ireland"))
+
+    # --- Filter the data for the chosen view ---
+    y_col = Y_OPTIONS[y_label]
+    if view == "Bubbles":
+        needed = ["inflation", y_col, "gdp_usd"]
+    else:
+        needed = ["inflation"]
+    plot_df = df[df["region"].isin(regions)].dropna(subset=needed).copy()
+    if plot_df.empty:
+        st.info("Pick at least one region to see the chart.")
+        return
+    plot_df = complete_years(plot_df)
+    plot_df["label"] = plot_df["name"].where(plot_df["name"] == highlight, "")
+
+    # --- Chart ---
+    if view == "Bubbles":
+        fig = bubble_chart(plot_df, y_col, y_label)
+    else:
+        fig = globe_chart(plot_df)
+        st.caption("Drag the globe to spin it. Press ▶ to watch inflation spread in 2021–22.")
     st.plotly_chart(fig, width="stretch", theme=None)
 
     # --- Explain a year ---
@@ -90,16 +122,17 @@ def render(scenario: dict | None = None) -> None:
     st.markdown(f"**{year}: {event}.** {high} of {len(that_year)} "
                 f"countries shown had inflation above 5%.")
 
-    # Countries outside the axes, named so nothing is hidden
-    y_lo, y_hi = Y_RANGES[y_col]
-    off = that_year[
-        (that_year["inflation"] < X_RANGE[0]) | (that_year["inflation"] > X_RANGE[1])
-        | (that_year[y_col] < y_lo) | (that_year[y_col] > y_hi)
-    ]
-    if len(off) > 0:
-        shown = ", ".join(off["name"].head(5))
-        more = f" and {len(off) - 5} more" if len(off) > 5 else ""
-        st.caption(f"Off the chart in {year}: {shown}{more}.")
+    # Countries outside the bubble chart's axes, named so nothing is hidden
+    if view == "Bubbles":
+        y_lo, y_hi = Y_RANGES[y_col]
+        off = that_year[
+            (that_year["inflation"] < X_RANGE[0]) | (that_year["inflation"] > X_RANGE[1])
+            | (that_year[y_col] < y_lo) | (that_year[y_col] > y_hi)
+        ]
+        if len(off) > 0:
+            shown = ", ".join(off["name"].head(5))
+            more = f" and {len(off) - 5} more" if len(off) > 5 else ""
+            st.caption(f"Off the chart in {year}: {shown}{more}.")
 
     if highlight == "Ireland":
         with st.expander("Why does Ireland's GDP jump around?"):
