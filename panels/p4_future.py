@@ -54,9 +54,31 @@ def random_monthly_returns(annual_return: float, volatility: float, months: int,
     return rng.normal(monthly_rate(annual_return), monthly_vol, months)
 
 
+def simulate_one_future(start: float, monthly: float, annual_return: float, volatility: float, years: int, seed: int = 42) -> float:
+    """Grow savings month by month using a different random return each month.
+    
+    Args:
+        start (float): The initial money invested, in euros.
+        monthly (float): The amount of money added at the end of each month, in euros.
+        annual_return (float): The average annual return as a decimal, e.g., 0.065.
+        volatility (float): The annual standard deviation of the returns as a decimal, e.g., 0.15.
+        years (int): The number of years of saving.
+        seed (int): Starting point for the random number generator, for reproducibility.
+        
+    Returns:
+        float: The value of the savings at the end of this one possible future."""
+    returns = random_monthly_returns(annual_return, volatility, years * 12, seed)
+    balance = start
+    for r in returns:
+        balance = balance * (1 + r)
+        balance = balance + monthly
+    return balance
+
 if __name__ == "__main__":
     print(monthly_rate(0.065))
     print(grow_savings(1000, 0, 0.065, 1))
     print(grow_savings(1000, 150, 0.065, 30))
-    print(random_monthly_returns(0.065, 0.15, 12))
+    print(simulate_one_future(1000, 150, 0.065, 0.11, 30))
+    print(simulate_one_future(1000, 150, 0.065, 0.0, 30))
+    print(simulate_one_future(1000, 150, 0.065, 0.11, 30, seed=7))
           
