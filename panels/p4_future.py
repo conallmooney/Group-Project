@@ -66,7 +66,8 @@ def simulate_one_future(start: float, monthly: float, annual_return: float, vola
         seed (int): Starting point for the random number generator, for reproducibility.
         
     Returns:
-        float: The value of the savings at the end of this one possible future."""
+        float: The value of the savings at the end of this one possible future.
+        """
     returns = random_monthly_returns(annual_return, volatility, years * 12, seed)
     balance = start
     for r in returns:
@@ -74,11 +75,34 @@ def simulate_one_future(start: float, monthly: float, annual_return: float, vola
         balance = balance + monthly
     return balance
 
+
+def simulate_many_futures(start: float, monthly: float, annual_return: float, volatility: float, years: int, n_futures: int = 1000) -> np.ndarray:
+    """Run many random futures and collect the end value of each one.
+    
+    Args:
+        start (float): The initial money invested, in euros.
+        monthly (float): The amount of money added at the end of each month, in euros.
+        annual_return (float): The average annual return as a decimal, e.g., 0.065.
+        volatility (float): The annual standard deviation of the returns as a decimal, e.g., 0.15.
+        years (int): The number of years of saving.
+        n_futures (int): How many random futures to simulate.
+    
+    Returns:
+        np.ndarray: The end value of every simulated future.
+        """
+    results = []
+    for i in range(n_futures):
+        end_value = simulate_one_future(start, monthly, annual_return, volatility, years, seed=i)
+        results.append(end_value)
+    return np.array(results)
+
+
 if __name__ == "__main__":
-    print(monthly_rate(0.065))
-    print(grow_savings(1000, 0, 0.065, 1))
-    print(grow_savings(1000, 150, 0.065, 30))
-    print(simulate_one_future(1000, 150, 0.065, 0.11, 30))
-    print(simulate_one_future(1000, 150, 0.065, 0.0, 30))
-    print(simulate_one_future(1000, 150, 0.065, 0.11, 30, seed=7))
-          
+    finals = simulate_many_futures(1000, 150, 0.065, 0.15, 30)
+    print("Number of simulated futures:", len(finals)) 
+    print("Worst case scenario:", np.min(finals))
+    print("Bad (5th percentile) scenario:", np.percentile(finals, 5))
+    print("Median scenario:", np.median(finals))
+    print("Good (95th percentile) scenario:", np.percentile(finals, 95))
+    print("Best case scenario:", np.max(finals))
+    print("Average:", np.mean(finals))
