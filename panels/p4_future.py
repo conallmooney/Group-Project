@@ -3,6 +3,8 @@
 Shows how a monthly saver's money could grow over time, 
 using 1,000 simulated futures and adjusted for inflation."""
 
+import numpy as np
+
 def monthly_rate(annual_return: float) -> float:
     """Turn an annual return into the equivalent monthly return.
 
@@ -35,8 +37,26 @@ def grow_savings(start: float, monthly: float, annual_return: float, years: int)
     return balance
 
 
+def random_monthly_returns(annual_return: float, volatility: float, months: int, seed: int = 42) -> np.ndarray:
+    """Make a random sequence of monthly returns that average to the given annual return, with the given volatility.
+    
+    Args:
+        annual_return (float): The average annual return as a decimal, e.g., 0.065.
+        volatility (float): The standard deviation of the returns as a decimal, e.g., 0.15.
+        months (int): How many monthly returns to generate.
+        seed (int): Starting point for the random number generator, for reproducibility.
+        
+    Returns: 
+        np.ndarray: An array of random monthly returns.
+    """
+    rng = np.random.default_rng(seed)
+    monthly_vol = volatility/np.sqrt(12)
+    return rng.normal(monthly_rate(annual_return), monthly_vol, months)
+
+
 if __name__ == "__main__":
     print(monthly_rate(0.065))
     print(grow_savings(1000, 0, 0.065, 1))
     print(grow_savings(1000, 150, 0.065, 30))
+    print(random_monthly_returns(0.065, 0.15, 12))
           
