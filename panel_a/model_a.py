@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))  # find data.py and style.py
@@ -44,7 +45,7 @@ def complete_years(df: pd.DataFrame, share: float = 0.8) -> pd.DataFrame:
     return df[df["year"].isin(good_years)]
 
 
-def bubble_chart(plot_df: pd.DataFrame, y_col: str, y_label: str):
+def bubble_chart(plot_df: pd.DataFrame, y_col: str, y_label: str) -> go.Figure :
     """Gapminder-style animated bubble chart: inflation vs growth or unemployment.
     Bubble size = GDP in US dollars."""
     fig = px.scatter(
@@ -62,7 +63,7 @@ def bubble_chart(plot_df: pd.DataFrame, y_col: str, y_label: str):
     return fig
 
 
-def globe_chart(plot_df: pd.DataFrame):
+def globe_chart(plot_df: pd.DataFrame) -> go.Figure :
     """Spinning 3D globe with each country coloured by its inflation rate."""
     fig = px.choropleth(
         plot_df, locations="economy", color="inflation", hover_name="name",
