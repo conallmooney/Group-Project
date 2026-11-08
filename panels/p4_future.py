@@ -151,10 +151,12 @@ def render(scenario: dict) -> None:
     monthly = st.slider("Monthly contribution (€)", 0, 1000, 150, step=25)
     years = st.slider("Years", 5, 40, 30)
     paths = simulate_paths(1000, monthly, 0.065, 0.15, years)
-    finals = paths[:, -1]
-    st.metric("Bad case (1 in 20)", f"€{np.percentile(finals, 5):,.0f}")
-    st.metric("Middle outcome", f"€{np.median(finals):,.0f}")
-    st.metric("Good case (1 in 20)", f"€{np.percentile(finals, 95):,.0f}")
+    real_paths = to_todays_euros(paths, scenario["inflation"])
+    finals = real_paths[:, -1]
+    st.metric("Bad case (1 in 20), today's €", f"€{np.percentile(finals, 5):,.0f}")
+    st.metric("Middle outcome, today's €", f"€{np.median(finals):,.0f}")
+    st.metric("Good case (1 in 20), today's €", f"€{np.percentile(finals, 95):,.0f}")
+    st.caption(f"Adjusted for {scenario['inflation']:.1%} inflation a year, so values show what the money would buy today.")
 
 
 if __name__ == "__main__":
