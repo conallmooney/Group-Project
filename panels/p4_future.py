@@ -6,6 +6,7 @@ using 1,000 simulated futures and adjusted for inflation."""
 import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
+import pandas as pd
 
 # Return and volatility for each risk profile (yearly, as decimals).
 # Long-run assumptions, matching docs/risk_quiz.md.
@@ -162,6 +163,25 @@ def to_todays_euros(paths: np.ndarray, inflation: float) -> np.ndarray:
     return paths / price_growth
 
 
+def paid_in_todays_euros(start: float, monthly: float, inflation: float, years: int) -> np.ndarray:
+    """Total money paid in by each month, in today's euros.
+
+    Each monthly payment is converted by when it is made, then they are added up.
+
+    Args:
+        start (float): Money invested at the beginning, in euros.
+        monthly (float): Money added at the end of each month, in euros.
+        inflation (float): Yearly inflation rate as a decimal, e.g. 0.025.
+        years (int): Number of years of saving.
+
+    Returns:
+        np.ndarray: Total paid in by each month (month 0 to the final month).
+    """
+    months = np.arange(years * 12 + 1)
+    each_payment = monthly / (1 + inflation) ** (months / 12)
+    each_payment[0] = 0
+    return start + np.cumsum(each_payment)
+
 def fan_percentiles(paths: np.ndarray) -> dict:
     """Work out the bad, middle and good values at every month.
 
@@ -272,6 +292,18 @@ def render(scenario: dict) -> None:
     if goal > 0:
         st.metric("Chance of reaching your goal", f"{chance_of_reaching(finals, goal):.0%}")
     st.caption(f"Adjusted for {inflation:.1%} inflation a year, so values show what the money would buy today.")
+    
+    years_list = np.arange(years + 1)
+    table = pd.DataFrame({
+        "year": years_list,
+        "paid_in_eur_nominal": start + monthly * 12 * years_list,
+        "paid_in_todays_eur": paid_in_todays_euros(start, monthly, inflation, years)[::12].round(0).astype(int), 
+        "bad_case_todays_eur": fan[5][::12].round(0).astype(int),
+        "middle_todays_eur": fan[50][::12].round(0).astype(int),
+        "good_case_todays_eur": fan[95][::12].round(0).astype(int),
+    })
+    st.download_button("Download my projection (CSV)", table.to_csv(index=False),
+                       file_name="my_projection.csv", mime="text/csv")
 
 if __name__ == "__main__":
     render({"name": "Placeholder", "shock_pp": 0.0, "inflation": 0.025, "rf": 0.04})

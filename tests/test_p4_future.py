@@ -3,7 +3,9 @@
 import pytest
 import numpy as np
 
-from panels.p4_future import monthly_rate, grow_savings, simulate_one_future, simulate_paths, to_todays_euros, fan_percentiles, chance_of_reaching, quiz_to_profile
+from panels.p4_future import (chance_of_reaching, fan_percentiles, monthly_rate, grow_savings, simulate_one_future, 
+                              simulate_paths, to_todays_euros, fan_percentiles, chance_of_reaching, 
+                              quiz_to_profile, paid_in_todays_euros)
 
 
 def test_monthly_rate_compounds_to_yearly():
@@ -64,3 +66,15 @@ def test_quiz_scoring():
     assert quiz_to_profile([2, 1, 1]) == "Balanced"
     assert quiz_to_profile([2, 2, 1]) == "Adventurous"
     assert quiz_to_profile([2, 2, 2]) == "Adventurous"
+
+
+def test_paid_in_with_no_inflation_is_simple_total():
+    """With 0% inflation, paid in = start + monthly * months."""
+    paid = paid_in_todays_euros(1000, 150, 0.0, 30)
+    assert paid[-1] == pytest.approx(1000 + 150 * 360)
+
+
+def test_inflation_makes_paid_in_worth_less():
+    """With inflation, the same payments are worth less in today's money."""
+    paid = paid_in_todays_euros(1000, 150, 0.025, 30)
+    assert paid[-1] < 1000 + 150 * 360
