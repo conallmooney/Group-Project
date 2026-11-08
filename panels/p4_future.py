@@ -15,6 +15,18 @@ PROFILES = {
     "Adventurous": {"return": 0.085, "volatility": 0.16},
 }
 
+# The three risk-quiz questions. Answers are in order of score: 0, 1, 2.
+QUIZ = [
+    {"question": "When will you need most of this money?",
+     "answers": ["In less than 5 years", "In 5 to 15 years", "In more than 15 years"]},
+    {"question": "Your savings drop 20% in one bad year. What do you do?",
+     "answers": ["Sell, so I don't lose any more", "Hold on and wait for them to recover",
+                 "Invest more while prices are low"]},
+    {"question": "Which matters most to you?",
+     "answers": ["Keep it safe", "Grow it steadily",
+                 "Aim for the most growth. I don't mind short-term losses"]},
+]
+
 def monthly_rate(annual_return: float) -> float:
     """Turn an annual return into the equivalent monthly return.
 
@@ -216,7 +228,20 @@ def render(scenario: dict) -> None:
                           scenario["inflation"] * 100, step=0.5) / 100
     goal = st.number_input("Savings goal in today's € (0 = no goal)", min_value=0,
                            max_value=10000000, value=50000, step=5000)
-    paths = simulate_paths(start, monthly, 0.065, 0.15, years)
+    
+    st.markdown("**Risk quiz**")
+    scores = []
+    for i, q in enumerate(QUIZ):
+        answer = st.radio(q["question"], q["answers"], index=1, key=f"quiz_{i}")
+        scores.append(q["answers"].index(answer))
+
+    profile = quiz_to_profile(scores)
+    annual_return = PROFILES[profile]["return"]
+    volatility = PROFILES[profile]["volatility"]
+    st.caption(f"Your answers suggest a **{profile}** profile: "
+               f"{annual_return:.1%} expected return and {volatility:.0%} volatility a year.")
+    
+    paths = simulate_paths(start, monthly, annual_return, volatility, years)
     real_paths = to_todays_euros(paths, inflation)
     finals = real_paths[:, -1]
     fan = fan_percentiles(real_paths)
