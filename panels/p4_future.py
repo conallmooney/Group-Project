@@ -141,6 +141,21 @@ def to_todays_euros(paths: np.ndarray, inflation: float) -> np.ndarray:
     return paths / price_growth
 
 
+def fan_percentiles(paths: np.ndarray) -> dict:
+    """Work out the bad, middle and good values at every month.
+
+    Args:
+        paths (np.ndarray): Grid of values, one row per future and one column per month.
+    
+    Returns:
+        dict: Keys 5, 25, 50, 75 and 95, each holding one value per month.
+    """
+    fan = {}
+    for p in [5, 25, 50, 75, 95]:
+        fan[p] = np.percentile(paths, p, axis=0)
+    return fan
+
+
 def render(scenario: dict) -> None:
     """Draw Panel 4 on the dashboard.
     Args:

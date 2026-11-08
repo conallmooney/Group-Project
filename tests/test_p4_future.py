@@ -2,7 +2,7 @@
 
 import pytest
 
-from panels.p4_future import monthly_rate, grow_savings, simulate_one_future, simulate_paths, to_todays_euros
+from panels.p4_future import monthly_rate, grow_savings, simulate_one_future, simulate_paths, to_todays_euros, fan_percentiles
 
 
 def test_monthly_rate_compounds_to_yearly():
@@ -34,3 +34,14 @@ def test_inflation_removes_price_growth():
     real = to_todays_euros(paths, 0.02)
     assert real[0, 0] == pytest.approx(1000)
     assert real[0, -1] == pytest.approx(1000 / 1.02 ** 10)
+
+
+def test_fan_lines_are_in_order():
+    """At every month, bad <= lower middle <= median <= upper middle <= good."""
+    paths = simulate_paths(1000, 150, 0.065, 0.15, 30)
+    fan = fan_percentiles(paths)
+    assert len(fan[50]) == 361
+    assert all(fan[5] <= fan[25])
+    assert all(fan[25] <= fan[50])
+    assert all(fan[50] <= fan[75])
+    assert all(fan[75] <= fan[95])
