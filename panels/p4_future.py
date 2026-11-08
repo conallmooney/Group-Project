@@ -65,7 +65,7 @@ def simulate_one_future(start: float, monthly: float, annual_return: float, vola
         volatility (float): The annual standard deviation of the returns as a decimal, e.g., 0.15.
         years (int): The number of years of saving.
         seed (int): Starting point for the random number generator, for reproducibility.
-        
+    
     Returns:
         float: The value of the savings at the end of this one possible future.
         """
@@ -98,6 +98,34 @@ def simulate_many_futures(start: float, monthly: float, annual_return: float, vo
     return np.array(results)
 
 
+def simulate_paths(start: float, monthly: float, annual_return: float, volatility: float, years: int, n_futures: int = 1000, seed: int = 42) -> np.ndarray:
+    """Simulate many random futures and return the full path of each one.
+
+    Args: 
+        start (float): The initial money invested, in euros.
+        monthly (float): The amount of money added at the end of each month, in euros.
+        annual_return (float): The average annual return as a decimal, e.g. 0.065.
+        volatility (float): The annual standard deviation of the returns as a decimal, e.g. 0.15.
+        years (int): The number of years of saving.
+        n_futures (int): How many random futures to simulate.
+        seed (int): Starting point for the random number generator, for reproducibility.
+
+    Returns:
+        np.ndarray: A grid with one row per future and one column per month.
+        """
+    months = years * 12
+    rng = np.random.default_rng(seed)
+    monthly_vol = volatility / np.sqrt(12)
+    returns = rng.normal(monthly_rate(annual_return), monthly_vol, size = (n_futures, months))
+    
+    paths = np.zeros((n_futures, months +1))
+    paths[:, 0] = start
+
+    for m in range(months):
+        paths[:, m + 1] = paths[:, m] * (1 + returns[:, m]) + monthly
+    return paths
+
+
 def render(scenario: dict) -> None:
     """Draw Panel 4 on the dashboard.
     Args:
@@ -107,7 +135,8 @@ def render(scenario: dict) -> None:
     st.subheader("Panel 4 -  What could it become?")
     monthly = st.slider("Monthly contribution (€)", 0, 1000, 150, step=25)
     years = st.slider("Years", 5, 40, 30)
-    finals = simulate_many_futures(1000, monthly, 0.065, 0.11, years)
+    paths = simulate_paths(1000, monthly, 0.065, 0.15, years)
+    finals = paths[:, -1]
     st.metric("Bad case (1 in 20)", f"€{np.percentile(finals, 5):,.0f}")
     st.metric("Middle outcome", f"€{np.median(finals):,.0f}")
     st.metric("Good case (1 in 20)", f"€{np.percentile(finals, 95):,.0f}")

@@ -2,7 +2,7 @@
 
 import pytest
 
-from panels.p4_future import monthly_rate, grow_savings, simulate_one_future
+from panels.p4_future import monthly_rate, grow_savings, simulate_one_future, simulate_paths
 
 
 def test_monthly_rate_compounds_to_yearly():
@@ -20,3 +20,9 @@ def test_zero_volatility_matches_fixed_return():
     random_version = simulate_one_future(1000, 150, 0.065, 0.0, 30)
     fixed_version = grow_savings(1000, 150, 0.065, 30)
     assert random_version == pytest.approx(fixed_version)
+
+def test_paths_zero_volatility_all_match_fixed_return():
+    """With no randomness, every future should end at the fixed_return value."""
+    paths = simulate_paths(1000, 150, 0.065, 0.0, 30)
+    assert paths.shape == (1000, 361)
+    assert paths[:, -1] == pytest.approx(grow_savings(1000, 150, 0.065, 30))
