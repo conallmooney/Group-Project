@@ -166,8 +166,12 @@ def render(scenario: dict) -> None:
     st.subheader("Panel 4 -  What could it become?")
     monthly = st.slider("Monthly contribution (€)", 0, 1000, 150, step=25)
     years = st.slider("Years", 5, 40, 30)
-    paths = simulate_paths(1000, monthly, 0.065, 0.15, years)
-    real_paths = to_todays_euros(paths, scenario["inflation"])
+    start = st.number_input("Starting amount (€)", min_value=0, max_value=100000,
+                            value=1000, step=500)
+    inflation = st.slider("Inflation (% a year)", 0.0, 8.0,
+                          scenario["inflation"] * 100, step=0.5) / 100
+    paths = simulate_paths(start, monthly, 0.065, 0.15, years)
+    real_paths = to_todays_euros(paths, inflation)
     finals = real_paths[:, -1]
     fan = fan_percentiles(real_paths)
     x = np.arange(years + 1)
@@ -191,8 +195,7 @@ def render(scenario: dict) -> None:
     st.metric("Bad case (1 in 20), today's €", f"€{np.percentile(finals, 5):,.0f}")
     st.metric("Middle outcome, today's €", f"€{np.median(finals):,.0f}")
     st.metric("Good case (1 in 20), today's €", f"€{np.percentile(finals, 95):,.0f}")
-    st.caption(f"Adjusted for {scenario['inflation']:.1%} inflation a year, so values show what the money would buy today.")
-
+    st.caption(f"Adjusted for {inflation:.1%} inflation a year, so values show what the money would buy today.")
 
 if __name__ == "__main__":
     render({"name": "Placeholder", "shock_pp": 0.0, "inflation": 0.025, "rf": 0.04})
