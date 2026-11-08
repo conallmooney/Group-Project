@@ -3,7 +3,7 @@
 import pytest
 import numpy as np
 
-from panels.p4_future import (chance_of_reaching, fan_percentiles, monthly_rate, grow_savings, simulate_one_future, 
+from panel_d.model_d import (chance_of_reaching, fan_percentiles, monthly_rate, grow_savings, simulate_one_future, 
                               simulate_paths, to_todays_euros, fan_percentiles, chance_of_reaching, 
                               quiz_to_profile, paid_in_todays_euros)
 
