@@ -8,6 +8,11 @@ import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
 
+# Chart colours, matching style.py (swap for style.ACCENT etc. once it's merged)
+ACCENT = "#0E6E8C"
+MUTED = "#5A6878"
+INK = "#13202C"
+
 # Return and volatility for each risk profile (yearly, as decimals).
 # Long-run assumptions, matching docs/risk_quiz.md.
 PROFILES = {
@@ -233,66 +238,96 @@ def quiz_to_profile(scores: list) -> str:
         return "Adventurous"
 
 
-def render(scenario: dict) -> None:
+def render(scenario: dict) -> None: 
     """Draw Panel 4 on the dashboard.
+
     Args:
         scenario (dict): The chosen scenario, with keys "name", "shock_pp",
             "inflation" and "rf". Not used yet.
     """
     st.subheader("Panel 4 -  What could it become?")
-    monthly = st.slider("Monthly contribution (€)", 0, 1000, 150, step=25)
-    years = st.slider("Years", 5, 40, 30)
-    start = st.number_input("Starting amount (€)", min_value=0, max_value=100000,
-                            value=1000, step=500)
-    inflation = st.slider("Inflation (% a year)", 0.0, 8.0,
-                          scenario["inflation"] * 100, step=0.5) / 100
-    goal = st.number_input("Savings goal in today's € (0 = no goal)", min_value=0,
-                           max_value=10000000, value=50000, step=5000)
+
+    # --- Controls ---
+    left, right = st.columns(2)
+    with left:
+        monthly = st.slider("Monthly contribution (€)", 0, 1000, 150, step=25)
+        years = st.slider("Years", 5, 40, 30)
+        start = st.number_input("Starting amount (€)", min_value=0, max_value=100000,
+                                value=1000, step=500)
+    with right:
+        inflation = st.slider("Inflation (% a year)", 0.0, 8.0,
+                              scenario["inflation"] * 100, step=0.5) / 100
+        goal = st.number_input("Savings goal in today's € (0 = no goal)", min_value=0,
+                               max_value=10000000, value=50000, step=5000)
     
     st.markdown("**Risk quiz**")
     scores = []
-    for i, q in enumerate(QUIZ):
-        answer = st.radio(q["question"], q["answers"], index=1, key=f"quiz_{i}")
-        scores.append(q["answers"].index(answer))
+    with st.expander("Risk quiz: answer 3 questions to set your risk profile"):
+        scores = []
+        for i, q in enumerate(QUIZ):
+            answer = st.radio(q["question"], q["answers"], index=1, key=f"quiz_{i}")
+            scores.append(q["answers"].index(answer))
 
     profile = quiz_to_profile(scores)
     annual_return = PROFILES[profile]["return"]
     volatility = PROFILES[profile]["volatility"]
     st.caption(f"Your answers suggest a **{profile}** profile: "
                f"{annual_return:.1%} expected return and {volatility:.0%} volatility a year.")
-    
+
+    # --- Simulation ---
     paths = simulate_paths(start, monthly, annual_return, volatility, years)
     real_paths = to_todays_euros(paths, inflation)
     finals = real_paths[:, -1]
     fan = fan_percentiles(real_paths)
     x = np.arange(years + 1)
+
+    # --- Headline: the finding, updated by the controls ---
+    headline = f"After {years} years, the middle outcome is **€{np.median(finals):,.0f}** in today's money"
+    if goal > 0:
+        headline += f", with a **{chance_of_reaching(finals, goal):.0%} chance** of reaching €{goal:,.0f}"
+    st.markdown(headline + ".")
+
+    # --- Fan chart ---
     fig = go.Figure()
     # Light band: 90% of futures land between the 5th and 95th percentiles
     fig.add_trace(go.Scatter(x=x, y=fan[5][::12], mode="lines", line=dict(width=0),
-                             showlegend=False, name = "Bad case"))
+                             showlegend=False, name="Bad case"))
     fig.add_trace(go.Scatter(x=x, y=fan[95][::12], mode="lines", line=dict(width=0),
                              fill="tonexty", fillcolor="rgba(14,110,140,0.15)",
                              name="Good case"))
 
     # Darker band: the middle half of futures, between the 25th and 75th percentiles
     fig.add_trace(go.Scatter(x=x, y=fan[25][::12], mode="lines", line=dict(width=0),
-                             showlegend=False, name = "Lower middle"))
+                             showlegend=False, name="Lower middle"))
     fig.add_trace(go.Scatter(x=x, y=fan[75][::12], mode="lines", line=dict(width=0),
                              fill="tonexty", fillcolor="rgba(14,110,140,0.35)",
                              name="Upper middle"))
-    fig.add_trace(go.Scatter(x=x, y=fan[50][::12], mode="lines", name="Middle outcome", line=dict(color="#0E6E8C", width=3)))
+    
+    fig.add_trace(go.Scatter(x=x, y=fan[50][::12], mode="lines", name="Middle outcome", line=dict(color=ACCENT, width=3)))
+    paid = paid_in_todays_euros(start, monthly, inflation, years)
+    fig.add_trace(go.Scatter(x=x, y=paid[::12], mode="lines", name="Paid in",
+                             line=dict(color=MUTED, width=2, dash="dash")))
     if goal > 0:
-        fig.add_hline(y=goal, line_dash="dot", line_color="#13202C",
+        fig.add_hline(y=goal, line_dash="dot", line_color=INK,
                       annotation_text=f"Goal €{goal:,.0f}", annotation_position="top left")
+        
     fig.update_layout(title="How your savings could grow (today's €)", xaxis_title="Years from now", yaxis_title="Value in today's €", yaxis=dict(tickprefix="€",tickformat=",.0f", rangemode="tozero"),hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0), template="plotly_white",height=420, showlegend=False)
     st.plotly_chart(fig)
-    st.metric("Bad case (1 in 20), today's €", f"€{np.percentile(finals, 5):,.0f}")
-    st.metric("Middle outcome, today's €", f"€{np.median(finals):,.0f}")
-    st.metric("Good case (1 in 20), today's €", f"€{np.percentile(finals, 95):,.0f}")
+
+    # --- Results ---
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Bad case (1 in 20)", f"€{np.percentile(finals, 5):,.0f}")
+    c2.metric("Middle outcome", f"€{np.median(finals):,.0f}")
+    c3.metric("Good case (1 in 20)", f"€{np.percentile(finals, 95):,.0f}")
     if goal > 0:
-        st.metric("Chance of reaching your goal", f"{chance_of_reaching(finals, goal):.0%}")
+        c4.metric("Chance of goal", f"{chance_of_reaching(finals, goal):.0%}")
+    st.caption("Dark band: the middle half of the 1,000 simulated futures. Light band: 90% of them. "
+               "Dashed line: the money you paid in. This shows a range of possible outcomes, not a forecast.")
     st.caption(f"Adjusted for {inflation:.1%} inflation a year, so values show what the money would buy today.")
-    
+    st.caption("Source: Monte Carlo simulation with random monthly returns. Returns and volatility "
+               "are long-run assumptions for each risk profile.")
+
+    # --- Download ---
     years_list = np.arange(years + 1)
     table = pd.DataFrame({
         "year": years_list,
