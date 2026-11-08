@@ -243,25 +243,25 @@ def render(scenario: dict) -> None:
 
     Args:
         scenario (dict): The chosen scenario, with keys "name", "shock_pp",
-            "inflation" and "rf". Not used yet.
+            "inflation" and "rf".
     """
     st.subheader("Panel 4 -  What could it become?")
 
     # --- Controls ---
-    left, right = st.columns(2)
-    with left:
-        monthly = st.slider("Monthly contribution (€)", 0, 1000, 150, step=25)
-        years = st.slider("Years", 5, 40, 30)
-        start = st.number_input("Starting amount (€)", min_value=0, max_value=100000,
-                                value=1000, step=500)
-    with right:
-        inflation = st.slider("Inflation (% a year)", 0.0, 8.0,
-                              scenario["inflation"] * 100, step=0.5) / 100
-        goal = st.number_input("Savings goal in today's € (0 = no goal)", min_value=0,
-                               max_value=10000000, value=50000, step=5000)
+    # Row 1: the three sliders
+    c1, c2, c3 = st.columns(3)
+    monthly = c1.slider("Monthly (€)", 0, 1000, 150, step=25)
+    years = c2.slider("Years", 5, 40, 30)
+    inflation = c3.slider("Inflation (% a year)", 0.0, 8.0,
+                          scenario["inflation"] * 100, step=0.5) / 100
+
+    # Row 2: the two amounts
+    c4, c5 = st.columns(2)
+    start = c4.number_input("Starting amount (€)", min_value=0, max_value=100000,
+                            value=1000, step=500)
+    goal = c5.number_input("Savings goal, today's € (0 = none)", min_value=0,
+                           max_value=10000000, value=50000, step=5000)
     
-    st.markdown("**Risk quiz**")
-    scores = []
     with st.expander("Risk quiz: answer 3 questions to set your risk profile"):
         scores = []
         for i, q in enumerate(QUIZ):
@@ -311,7 +311,7 @@ def render(scenario: dict) -> None:
         fig.add_hline(y=goal, line_dash="dot", line_color=INK,
                       annotation_text=f"Goal €{goal:,.0f}", annotation_position="top left")
         
-    fig.update_layout(title="How your savings could grow (today's €)", xaxis_title="Years from now", yaxis_title="Value in today's €", yaxis=dict(tickprefix="€",tickformat=",.0f", rangemode="tozero"),hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0), template="plotly_white",height=420, showlegend=False)
+    fig.update_layout(margin=dict(l=10, r=10, t=10, b=10),xaxis_title="Years from now", yaxis_title="Value in today's €", yaxis=dict(tickprefix="€",tickformat=",.0f", rangemode="tozero"),hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0), template="plotly_white",height=420, showlegend=False)
     st.plotly_chart(fig)
 
     # --- Results ---
