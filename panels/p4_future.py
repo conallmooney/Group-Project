@@ -170,10 +170,23 @@ def render(scenario: dict) -> None:
     real_paths = to_todays_euros(paths, scenario["inflation"])
     finals = real_paths[:, -1]
     fan = fan_percentiles(real_paths)
-    x = np.arange(len(fan[50]))/12
+    x = np.arange(years + 1)
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=x, y=fan[50], mode="lines", name="Middle outcome"))
-    fig.update_layout(title="How your savings could grow (today's €)", xaxis_title="Years from now", yaxis_title="Value in today's €")
+    # Light band: 90% of futures land between the 5th and 95th percentiles
+    fig.add_trace(go.Scatter(x=x, y=fan[5][::12], mode="lines", line=dict(width=0),
+                             showlegend=False, name = "Bad case"))
+    fig.add_trace(go.Scatter(x=x, y=fan[95][::12], mode="lines", line=dict(width=0),
+                             fill="tonexty", fillcolor="rgba(14,110,140,0.15)",
+                             name="Good case"))
+
+    # Darker band: the middle half of futures, between the 25th and 75th percentiles
+    fig.add_trace(go.Scatter(x=x, y=fan[25][::12], mode="lines", line=dict(width=0),
+                             showlegend=False, name = "Lower middle"))
+    fig.add_trace(go.Scatter(x=x, y=fan[75][::12], mode="lines", line=dict(width=0),
+                             fill="tonexty", fillcolor="rgba(14,110,140,0.35)",
+                             name="Upper middle"))
+    fig.add_trace(go.Scatter(x=x, y=fan[50][::12], mode="lines", name="Middle outcome", line=dict(color="#0E6E8C", width=3)))
+    fig.update_layout(title="How your savings could grow (today's €)", xaxis_title="Years from now", yaxis_title="Value in today's €", yaxis=dict(tickprefix="€",tickformat=",.0f", rangemode="tozero"),hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0), template="plotly_white",height=420, showlegend=False)
     st.plotly_chart(fig)
     st.metric("Bad case (1 in 20), today's €", f"€{np.percentile(finals, 5):,.0f}")
     st.metric("Middle outcome, today's €", f"€{np.median(finals):,.0f}")
