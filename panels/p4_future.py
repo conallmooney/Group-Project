@@ -5,6 +5,7 @@ using 1,000 simulated futures and adjusted for inflation."""
 
 import numpy as np
 import streamlit as st
+import plotly.graph_objects as go
 
 def monthly_rate(annual_return: float) -> float:
     """Turn an annual return into the equivalent monthly return.
@@ -168,6 +169,12 @@ def render(scenario: dict) -> None:
     paths = simulate_paths(1000, monthly, 0.065, 0.15, years)
     real_paths = to_todays_euros(paths, scenario["inflation"])
     finals = real_paths[:, -1]
+    fan = fan_percentiles(real_paths)
+    x = np.arange(len(fan[50]))/12
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=x, y=fan[50], mode="lines", name="Middle outcome"))
+    fig.update_layout(title="How your savings could grow (today's €)", xaxis_title="Years from now", yaxis_title="Value in today's €")
+    st.plotly_chart(fig)
     st.metric("Bad case (1 in 20), today's €", f"€{np.percentile(finals, 5):,.0f}")
     st.metric("Middle outcome, today's €", f"€{np.median(finals):,.0f}")
     st.metric("Good case (1 in 20), today's €", f"€{np.percentile(finals, 95):,.0f}")
