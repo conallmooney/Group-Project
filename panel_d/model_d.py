@@ -8,10 +8,7 @@ import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
 
-# Chart colours, matching style.py (swap for style.ACCENT etc. once it's merged)
-ACCENT = "#0E6E8C"
-MUTED = "#5A6878"
-INK = "#13202C"
+from style import ACCENT, INK, MUTED
 
 # Return and volatility for each risk profile (yearly, as decimals).
 # Long-run assumptions, matching docs/risk_quiz.md.
@@ -246,6 +243,7 @@ def render(scenario: dict) -> None:
             "inflation" and "rf".
     """
     st.subheader("Panel 4 -  What could it become?")
+    headline_slot = st.empty()
 
     # --- Controls ---
     # Row 1: the three sliders
@@ -285,7 +283,7 @@ def render(scenario: dict) -> None:
     headline = f"After {years} years, the middle outcome is **€{np.median(finals):,.0f}** in today's money"
     if goal > 0:
         headline += f", with a **{chance_of_reaching(finals, goal):.0%} chance** of reaching €{goal:,.0f}"
-    st.markdown(headline + ".")
+    headline_slot.markdown(headline + ".")
 
     # --- Fan chart ---
     fig = go.Figure()
@@ -311,8 +309,8 @@ def render(scenario: dict) -> None:
         fig.add_hline(y=goal, line_dash="dot", line_color=INK,
                       annotation_text=f"Goal €{goal:,.0f}", annotation_position="top left")
         
-    fig.update_layout(margin=dict(l=10, r=10, t=10, b=10),xaxis_title="Years from now", yaxis_title="Value in today's €", yaxis=dict(tickprefix="€",tickformat=",.0f", rangemode="tozero"),hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0), template="plotly_white",height=420, showlegend=False)
-    st.plotly_chart(fig)
+    fig.update_layout(margin=dict(l=10, r=10, t=10, b=10),xaxis_title="Years from now", yaxis_title="Value in today's €", yaxis=dict(tickprefix="€",tickformat=",.0f", rangemode="tozero"),hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0),height=420, showlegend=False)
+    st.plotly_chart(fig, theme = None) 
 
     # --- Results ---
     c1, c2, c3, c4 = st.columns(4)
