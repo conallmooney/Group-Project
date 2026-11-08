@@ -4,6 +4,7 @@ Shows how a monthly saver's money could grow over time,
 using 1,000 simulated futures and adjusted for inflation."""
 
 import numpy as np
+import streamlit as st
 
 def monthly_rate(annual_return: float) -> float:
     """Turn an annual return into the equivalent monthly return.
@@ -97,12 +98,20 @@ def simulate_many_futures(start: float, monthly: float, annual_return: float, vo
     return np.array(results)
 
 
+def render(scenario: dict) -> None:
+    """Draw Panel 4 on the dashboard.
+    Args:
+        scenario (dict): The chosen scenario, with keys "name", "shock_pp",
+            "inflation" and "rf". Not used yet.
+    """
+    st.subheader("Panel 4 -  What could it become?")
+    monthly = st.slider("Monthly contribution (€)", 0, 1000, 150, step=25)
+    years = st.slider("Years", 5, 40, 30)
+    finals = simulate_many_futures(1000, monthly, 0.065, 0.11, years)
+    st.metric("Bad case (1 in 20)", f"€{np.percentile(finals, 5):,.0f}")
+    st.metric("Middle outcome", f"€{np.median(finals):,.0f}")
+    st.metric("Good case (1 in 20)", f"€{np.percentile(finals, 95):,.0f}")
+
+
 if __name__ == "__main__":
-    finals = simulate_many_futures(1000, 150, 0.065, 0.15, 30)
-    print("Number of simulated futures:", len(finals)) 
-    print("Worst case scenario:", np.min(finals))
-    print("Bad (5th percentile) scenario:", np.percentile(finals, 5))
-    print("Median scenario:", np.median(finals))
-    print("Good (95th percentile) scenario:", np.percentile(finals, 95))
-    print("Best case scenario:", np.max(finals))
-    print("Average:", np.mean(finals))
+    render({"name": "Placeholder", "shock_pp": 0.0, "inflation": 0.025, "rf": 0.04})
