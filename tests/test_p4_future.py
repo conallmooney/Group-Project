@@ -2,7 +2,7 @@
 
 import pytest
 
-from panels.p4_future import monthly_rate, grow_savings, simulate_one_future, simulate_paths
+from panels.p4_future import monthly_rate, grow_savings, simulate_one_future, simulate_paths, to_todays_euros
 
 
 def test_monthly_rate_compounds_to_yearly():
@@ -26,3 +26,11 @@ def test_paths_zero_volatility_all_match_fixed_return():
     paths = simulate_paths(1000, 150, 0.065, 0.0, 30)
     assert paths.shape == (1000, 361)
     assert paths[:, -1] == pytest.approx(grow_savings(1000, 150, 0.065, 30))
+
+
+def test_inflation_removes_price_growth():
+    """1,000 that doesn't grow, after 10 years of 2% inflation, is worth 1,000 / 1.02^10 today."""
+    paths = simulate_paths(1000, 0, 0.0, 0.0, 10)
+    real = to_todays_euros(paths, 0.02)
+    assert real[0, 0] == pytest.approx(1000)
+    assert real[0, -1] == pytest.approx(1000 / 1.02 ** 10)

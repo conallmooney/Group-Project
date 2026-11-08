@@ -126,6 +126,21 @@ def simulate_paths(start: float, monthly: float, annual_return: float, volatilit
     return paths
 
 
+def to_todays_euros(paths: np.ndarray, inflation: float) -> np.ndarray:
+    """Convert future values into today's euros by removing inflation.
+
+    Args:
+        paths (np.ndarray): Grid of values, one row per future and one column per month.
+        inflation (float): Yearly inflation rate as a decimal, e.g. 0.025.
+
+    Returns:
+        np.ndarray: The same grid, in today's euros.
+    """
+    months = np.arange(paths.shape[1])
+    price_growth = (1 + inflation) ** (months / 12)
+    return paths / price_growth
+
+
 def render(scenario: dict) -> None:
     """Draw Panel 4 on the dashboard.
     Args:
