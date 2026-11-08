@@ -1,8 +1,9 @@
 """Tests for Panel 4 (What could it become?)"""
 
 import pytest
+import numpy as np
 
-from panels.p4_future import monthly_rate, grow_savings, simulate_one_future, simulate_paths, to_todays_euros, fan_percentiles
+from panels.p4_future import monthly_rate, grow_savings, simulate_one_future, simulate_paths, to_todays_euros, fan_percentiles, chance_of_reaching, quiz_to_profile
 
 
 def test_monthly_rate_compounds_to_yearly():
@@ -45,3 +46,21 @@ def test_fan_lines_are_in_order():
     assert all(fan[25] <= fan[50])
     assert all(fan[50] <= fan[75])
     assert all(fan[75] <= fan[95])
+
+
+def test_chance_of_reaching_goal():
+    """Half of [10, 20, 30, 40] are at or above 25; all are above 0; none are above 1000."""
+    finals = np.array([10, 20, 30, 40])
+    assert chance_of_reaching(finals, 25) == 0.5
+    assert chance_of_reaching(finals, 0) == 1.0
+    assert chance_of_reaching(finals, 1000) == 0.0
+
+
+def test_quiz_scoring():
+    """Totals 0-2 are Cautious, 3-4 Balanced, 5-6 Adventurous, including the edges."""
+    assert quiz_to_profile([0, 0, 0]) == "Cautious"
+    assert quiz_to_profile([1, 1, 0]) == "Cautious"
+    assert quiz_to_profile([1, 1, 1]) == "Balanced"
+    assert quiz_to_profile([2, 1, 1]) == "Balanced"
+    assert quiz_to_profile([2, 2, 1]) == "Adventurous"
+    assert quiz_to_profile([2, 2, 2]) == "Adventurous"

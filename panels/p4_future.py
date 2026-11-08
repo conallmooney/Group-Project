@@ -7,6 +7,14 @@ import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
 
+# Return and volatility for each risk profile (yearly, as decimals).
+# Long-run assumptions, matching docs/risk_quiz.md.
+PROFILES = {
+    "Cautious": {"return": 0.045, "volatility": 0.07},
+    "Balanced": {"return": 0.065, "volatility": 0.11},
+    "Adventurous": {"return": 0.085, "volatility": 0.16},
+}
+
 def monthly_rate(annual_return: float) -> float:
     """Turn an annual return into the equivalent monthly return.
 
@@ -157,6 +165,42 @@ def fan_percentiles(paths: np.ndarray) -> dict:
     return fan
 
 
+def chance_of_reaching(finals: np.ndarray, goal: float) -> float:
+    """Work out the share of futures that end at or above a savings goal.
+
+    Args:
+        finals (np.ndarray): The final value of each simulated future.
+        goal (float): The savings goal, in the same units as finals.
+
+    Returns:
+        float: A probability between 0 and 1, e.g. 0.43 for 43%.
+    """
+    if goal <= 0:
+        return 1.0
+    return float(np.mean(finals >= goal))
+
+
+def quiz_to_profile(scores: list) -> str:
+    """Turn the three quiz answers into a risk profile.
+
+    Each answer scores 0, 1 or 2, so the total runs from 0 to 6.
+    0-2 is Cautious, 3-4 is Balanced and 5-6 is Adventurous.
+
+    Args:
+        scores (list): One score (0, 1 or 2) for each of the three questions.
+
+    Returns:
+        str: "Cautious", "Balanced" or "Adventurous".
+    """
+    total = sum(scores)
+    if total <= 2:
+        return "Cautious"
+    elif total <= 4:
+        return "Balanced"
+    else:
+        return "Adventurous"
+
+
 def render(scenario: dict) -> None:
     """Draw Panel 4 on the dashboard.
     Args:
@@ -170,6 +214,8 @@ def render(scenario: dict) -> None:
                             value=1000, step=500)
     inflation = st.slider("Inflation (% a year)", 0.0, 8.0,
                           scenario["inflation"] * 100, step=0.5) / 100
+    goal = st.number_input("Savings goal in today's € (0 = no goal)", min_value=0,
+                           max_value=10000000, value=50000, step=5000)
     paths = simulate_paths(start, monthly, 0.065, 0.15, years)
     real_paths = to_todays_euros(paths, inflation)
     finals = real_paths[:, -1]
@@ -190,11 +236,16 @@ def render(scenario: dict) -> None:
                              fill="tonexty", fillcolor="rgba(14,110,140,0.35)",
                              name="Upper middle"))
     fig.add_trace(go.Scatter(x=x, y=fan[50][::12], mode="lines", name="Middle outcome", line=dict(color="#0E6E8C", width=3)))
+    if goal > 0:
+        fig.add_hline(y=goal, line_dash="dot", line_color="#13202C",
+                      annotation_text=f"Goal €{goal:,.0f}", annotation_position="top left")
     fig.update_layout(title="How your savings could grow (today's €)", xaxis_title="Years from now", yaxis_title="Value in today's €", yaxis=dict(tickprefix="€",tickformat=",.0f", rangemode="tozero"),hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0), template="plotly_white",height=420, showlegend=False)
     st.plotly_chart(fig)
     st.metric("Bad case (1 in 20), today's €", f"€{np.percentile(finals, 5):,.0f}")
     st.metric("Middle outcome, today's €", f"€{np.median(finals):,.0f}")
     st.metric("Good case (1 in 20), today's €", f"€{np.percentile(finals, 95):,.0f}")
+    if goal > 0:
+        st.metric("Chance of reaching your goal", f"{chance_of_reaching(finals, goal):.0%}")
     st.caption(f"Adjusted for {inflation:.1%} inflation a year, so values show what the money would buy today.")
 
 if __name__ == "__main__":
