@@ -5,6 +5,7 @@ from pathlib import Path
 import streamlit as st
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))  # find data.py and style.py
+from data import load_prices
 from style import ASSET_COLOURS
 
 # Default assets used to build the portfolio
@@ -36,6 +37,32 @@ def render(scenario: dict | None = None) -> None:
     if len(tickers) < 3:
         st.info("Choose at least three assets to build a portfolio.")
         return
+
+    # --- Load the data ---
+    try:
+        prices = load_prices(tuple(tickers))
+    except Exception as error:
+        st.error(f"ETF prices are unavailable: {error}")
+        return
+
+    # Keep dates where every selected asset has a price
+    prices = prices.dropna()
+
+    if len(prices) < 3:
+        st.info("Not enough shared price history.")
+        return
+
+    # --- Check the downloaded prices ---
+    st.write("Latest adjusted closing prices")
+    st.dataframe(prices.tail())
+
+    start_date = prices.index.min().strftime("%d %b %Y")
+    end_date = prices.index.max().strftime("%d %b %Y")
+
+    st.caption(
+        f"Price history available from {start_date} to {end_date}."
+    )
+    st.caption("Source: Yahoo Finance via yfinance. Adjusted closing prices.")
 
     # --- Portfolio overview ---
     st.write(f"You have selected {len(tickers)} assets.")
