@@ -1,4 +1,8 @@
-"""Shared data loaders for the Rates, Risk & Returns dashboard."""
+"""Shared data loaders for the Rates, Risk & Returns dashboard.
+
+Author: Ciara Feeney (Person A, data lead): World Bank loader, caching and backup CSV.
+Teammates adding their own loaders here: add your name next to your function.
+"""
 from pathlib import Path
 
 import pandas as pd

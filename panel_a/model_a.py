@@ -1,4 +1,8 @@
-"""Panel 1: The global shock. Animated bubble chart with a spinning-globe view of the same data."""
+"""Panel 1: The global shock. Animated bubble chart with a spinning-globe view of the same data.
+
+Author: Ciara Feeney (Person A, Panel 1 owner)
+Data: World Bank World Development Indicators, loaded through data.py
+"""
 import sys
 from pathlib import Path
 
