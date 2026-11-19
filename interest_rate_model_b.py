@@ -8,7 +8,29 @@ import numpy as np
 def calculate_sensitivities(
     regression_data: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Estimate ETF sensitivity to Treasury yield changes."""
+    
+    """
+    Estimate each ETF's sensitivity to Treasury yield changes.
+
+    Fits a separate ordinary least squares regression for each ETF,
+    using historical ETF percentage returns and changes in the
+    US 10-year Treasury yield.
+
+    Args:
+        regression_data: DataFrame containing ETF returns in percent
+            and a 'yield_change' column in percentage points.
+
+    Returns:
+        DataFrame containing ETF ticker, alpha, beta, R-squared
+        and number of observations for each successful regression.
+
+    Notes:
+        Beta measures the estimated percentage-point change in an
+        ETF's return for a 1 percentage-point change in Treasury
+        yields. At least 30 valid observations are required.
+        The relationship is historical and does not establish causation.
+    """
+
 
     results = []
 
@@ -64,7 +86,30 @@ def calculate_scenario_impacts(
     sensitivities: pd.DataFrame,
     shock_pp: float,
 ) -> pd.DataFrame:
-    """Calculate illustrative ETF impacts for a yield shock."""
+    
+    """
+    Calculate illustrative ETF return impacts under a rate scenario.
+
+    Multiplies each ETF's estimated interest-rate beta by the
+    scenario's interest-rate shock.
+
+    Args:
+        sensitivities: DataFrame containing regression results,
+            including a 'Beta' column.
+        shock_pp: Change in the 10-year Treasury yield,
+            measured in percentage points.
+
+    Returns:
+        Copy of the sensitivity results with an additional
+        'Scenario_Impact' column containing estimated percentage
+        returns associated with the specified yield shock.
+
+    Notes:
+        Assumes a linear relationship between ETF returns and
+        Treasury yield changes. Scenario impacts are illustrative
+        sensitivities, not guaranteed future returns.
+    """
+
 
     impacts = sensitivities.copy()
 

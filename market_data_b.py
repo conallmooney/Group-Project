@@ -16,7 +16,20 @@ def load_etf_prices(
     start: str = "2015-01-01",
     end: str = "2025-01-01",
 ) -> pd.DataFrame:
-    """Download daily adjusted ETF closing prices."""
+    
+    """
+    Download historical adjusted closing prices for selected ETFs.
+
+    Args:
+        tickers: Tuple of ETF ticker symbols to download.
+        start: Start date in YYYY-MM-DD format.
+        end: End date in YYYY-MM-DD format (exclusive).
+
+    Returns:
+        DataFrame containing daily adjusted closing prices,
+        with dates as the index and ETF tickers as columns.
+    """
+
 
     prices = yf.download(
         list(tickers),
@@ -41,7 +54,23 @@ def load_treasury_yields(
     start: str = "2015-01-01",
     end: str = "2025-01-01",
 ) -> pd.DataFrame:
-    """Download daily US 10-year Treasury yields from FRED."""
+    
+    """
+    Download daily US 10-year Treasury yields from FRED.
+
+    Args:
+        start: Start date in YYYY-MM-DD format.
+        end: End date in YYYY-MM-DD format.
+
+    Returns:
+        DataFrame containing DGS10 Treasury yields expressed
+        as annual percentages, indexed by observation date.
+
+    Notes:
+        Requires a FRED_API_KEY in Streamlit secrets.
+        Missing observations may occur on public holidays.
+    """
+
 
     api_key = st.secrets["FRED_API_KEY"]
     fred = Fred(api_key=api_key)
@@ -66,7 +95,25 @@ def prepare_regression_data(
     prices: pd.DataFrame,
     yields: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Align ETF returns with daily Treasury yield changes."""
+    
+    """
+    Prepare aligned ETF returns and Treasury yield changes.
+
+    Args:
+        prices: DataFrame containing daily ETF closing prices.
+        yields: DataFrame containing daily DGS10 Treasury yields.
+
+    Returns:
+        DataFrame containing ETF daily returns in percent
+        and Treasury yield changes in percentage points,
+        aligned by date.
+
+    Notes:
+        Dates with missing Treasury yield changes are removed.
+        Missing ETF returns are retained for individual
+        regression filtering.
+    """
+
 
     # Calculate daily percentage returns for each ETF.
     returns = prices.pct_change(fill_method=None) * 100
