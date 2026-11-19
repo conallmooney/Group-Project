@@ -5,6 +5,7 @@ Teammates adding their own loaders here: add your name next to your function.
 """
 from pathlib import Path
 from datetime import datetime
+import time 
 import threading 
 import pandas as pd
 import streamlit as st
@@ -27,25 +28,43 @@ REGION_NAMES = {
 }
 
 
+def _fetch_series(code: str, start: int, end: int, tries: int = 3) -> pd.DataFrame:
+    """Download one World Bank indicator, retrying if the API has a hiccup.
+
+    Asking for one indicator at a time keeps each request small, which the
+    World Bank API handles far more reliably than one large request.
+    """
+    for attempt in range(1, tries + 1):
+        try:
+            return wb.data.DataFrame(code, time=range(start, end + 1), skipAggs=True)
+        except Exception:
+            if attempt == tries:
+                raise
+            time.sleep(2)  # short pause, then try again
+
+
 def _download_world_bank(start: int, end: int) -> pd.DataFrame:
-    """Download the indicators and reshape to one row per country per year."""
-    raw = wb.data.DataFrame(list(WB_SERIES), time=range(start, end + 1), skipAggs=True)
-    long = raw.reset_index().melt(id_vars=["economy", "series"],
-                                  var_name="year", value_name="value")
-    long["year"] = long["year"].str.replace("YR", "").astype(int)
-    tidy = long.pivot_table(index=["economy", "year"], columns="series",
-                            values="value").reset_index()
-    tidy = tidy.rename(columns=WB_SERIES)
-    missing = [col for col in WB_SERIES.values() if col not in tidy.columns]
-    if missing or tidy.empty:
-        raise ValueError(f"World Bank data is missing: {missing}")
+    """Download the indicators one by one and reshape to one row per country per year."""
+    frames = []
+    for code, name in WB_SERIES.items():
+        raw = _fetch_series(code, start, end)  # rows = countries, columns = YR2000 ...
+        long = raw.reset_index().melt(id_vars="economy", var_name="year", value_name=name)
+        long["year"] = long["year"].str.replace("YR", "").astype(int)
+        frames.append(long.set_index(["economy", "year"]))
+    tidy = pd.concat(frames, axis=1).reset_index()  # line the indicators up side by side
+
+    # An indicator that came back completely empty counts as a failed download
+    empty = [name for name in WB_SERIES.values() if tidy[name].isna().all()]
+    if empty:
+        raise ValueError(f"World Bank data is missing: {empty}")
+
     info = wb.economy.DataFrame(skipAggs=True)[["name", "region"]]
     info["region"] = info["region"].map(REGION_NAMES)
     tidy = tidy.merge(info, left_on="economy", right_index=True)
     return tidy.sort_values(["year", "name"]).reset_index(drop=True)
 
 
-WB_TIMEOUT = 20  # seconds to wait for the World Bank before using the backup
+WB_TIMEOUT = 30  # seconds to wait for the World Bank before using the backup
 
 
 @st.cache_data(ttl=60 * 60 * 24, show_spinner="Downloading World Bank data...")
