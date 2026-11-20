@@ -1,3 +1,20 @@
-__pycache__/
+
 .pytest_cache/
 .vscode/
+# Local Python environment
+.venv/
+
+# Generated Python files
+__pycache__/
+*.py[cod]
+
+# Local secrets
+.streamlit/secrets.toml
+.env
+.env.*
+
+# macOS files
+.DS_Store
+
+# Temporary Streamlit test
+test_streamlit.py
