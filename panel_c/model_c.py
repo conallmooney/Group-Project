@@ -4,6 +4,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 from scipy.optimize import minimize
 
@@ -107,6 +109,45 @@ def optimise_portfolio(
         raise ValueError("The optimiser returned invalid allocations.")
 
     return weights
+
+
+def allocation_chart(allocation: pd.DataFrame) -> go.Figure:
+    """Show the optimised portfolio allocation using the shared asset colours."""
+    # Exclude allocations too small to display meaningfully
+    chart_df = allocation[allocation["Allocation"] > 1e-6].copy()
+
+    fig = px.pie(
+        chart_df,
+        names="Asset",
+        values="Allocation",
+        color="Asset",
+        color_discrete_map=ASSET_COLOURS,
+        hole=0.65,
+    )
+
+    fig.update_traces(
+        textposition="outside",
+        textinfo="label+percent",
+        hovertemplate="%{label}: %{percent}<extra></extra>",
+        sort=False,
+    )
+
+    fig.update_layout(
+        height=380,
+        margin=dict(l=40, r=40, t=30, b=30),
+        showlegend=False,
+        annotations=[
+            dict(
+                text="Portfolio<br>allocation",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
+                font=dict(size=18),
+            )
+        ],
+    )
+
+    return fig
 
 
 def render(scenario: dict | None = None) -> None:
@@ -222,6 +263,9 @@ def render(scenario: dict | None = None) -> None:
         "Asset": tickers,
         "Allocation": optimal_weights,
     })
+
+    fig = allocation_chart(allocation)
+    st.plotly_chart(fig, width="stretch", theme=None)
 
     st.dataframe(
         allocation.style.format({"Allocation": "{:.1%}"}),
