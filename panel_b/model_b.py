@@ -114,10 +114,12 @@ def render(scenario: dict) -> None:
         st.subheader("Interest-Rate Shock Simulator")
 
         
-        
         def on_shock_change():
-            """Switch to Custom when the shock slider is moved."""
+            """Keep the Custom scenario and slider in sync."""
+            shock_value = float(st.session_state["panel_b_shock"])
+
             st.session_state["scenario_selector"] = "Custom"
+            st.session_state["custom_shock"] = shock_value
 
         # Initialise the slider if no value exists yet.
         if "panel_b_shock" not in st.session_state:

@@ -32,6 +32,15 @@ def on_scenario_change():
         selected_scenario["shock_pp"]
     )
 
+    st.session_state["custom_shock"] = float(
+        selected_scenario["shock_pp"]
+    )
+
+
+if "custom_shock" not in st.session_state:
+    st.session_state["custom_shock"] = float(
+        st.session_state.get("panel_b_shock", 0.0)
+    )
 
 scenario_name = st.selectbox(
     "Choose an economic scenario:",
@@ -43,16 +52,22 @@ scenario_name = st.selectbox(
 scenario = get_scenario(scenario_name)
 
 if scenario_name == "Custom":
+    
+    def on_custom_shock_change():
+        """Update Panel B's slider when the Custom shock changes."""
+        st.session_state["panel_b_shock"] = float(
+            st.session_state["custom_shock"]
+        )
+
     scenario["shock_pp"] = st.number_input(
         "Interest-rate shock (percentage points)",
-        value=float(
-            st.session_state.get(
-                "panel_b_shock",
-                scenario["shock_pp"],
-            )
-        ),
+        min_value=-3.0,
+        max_value=3.0,
         step=0.25,
+        key="custom_shock",
+        on_change=on_custom_shock_change,
     )
+
 
     scenario["inflation"] = st.number_input(
         "Inflation rate (%)",
