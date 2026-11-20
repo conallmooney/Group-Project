@@ -91,44 +91,63 @@ def load_treasury_yields(
 
 
 
+
 def prepare_regression_data(
     prices: pd.DataFrame,
     yields: pd.DataFrame,
+    frequency: str = "Monthly",
 ) -> pd.DataFrame:
-    
     """
-    Prepare aligned ETF returns and Treasury yield changes.
+    Prepare ETF returns and Treasury yield changes for regression.
 
     Args:
-        prices: DataFrame containing daily ETF closing prices.
-        yields: DataFrame containing daily DGS10 Treasury yields.
+        prices: Daily adjusted ETF closing prices.
+        yields: Daily DGS10 Treasury yields in percent.
+        frequency: 'Daily', 'Weekly', or 'Monthly'.
 
     Returns:
-        DataFrame containing ETF daily returns in percent
-        and Treasury yield changes in percentage points,
+        DataFrame containing ETF percentage returns and
+        Treasury yield changes in percentage points,
         aligned by date.
 
     Notes:
-        Dates with missing Treasury yield changes are removed.
-        Missing ETF returns are retained for individual
-        regression filtering.
+        Weekly data uses the last available observation each week.
+        Monthly data uses the last available observation each month.
     """
 
+    frequency_rules = {
+        "Daily": None,
+        "Weekly": "W-FRI",
+        "Monthly": "ME",
+    }
 
-    # Calculate daily percentage returns for each ETF.
-    returns = prices.pct_change(fill_method=None) * 100
+    if frequency not in frequency_rules:
+        raise ValueError(
+            "Frequency must be Daily, Weekly, or Monthly."
+        )
 
-    # Calculate daily changes in Treasury yields
-    # measured in percentage points.
-    yield_changes = yields["DGS10"].diff()
+    # Sort the data and remove missing Treasury yields.
+    clean_prices = prices.sort_index()
+    clean_yields = yields["DGS10"].dropna().sort_index()
 
-    # Combine both datasets using their dates.
+    rule = frequency_rules[frequency]
+
+    # Convert daily observations to weekly or monthly.
+    if rule is not None:
+        clean_prices = clean_prices.resample(rule).last()
+        clean_yields = clean_yields.resample(rule).last()
+
+    # Calculate ETF percentage returns.
+    returns = clean_prices.pct_change(fill_method=None) * 100
+
+    # Calculate Treasury yield changes in percentage points.
+    yield_changes = clean_yields.diff()
+
+    # Match the ETF returns with Treasury yield changes.
     combined = returns.join(
         yield_changes.rename("yield_change"),
-        how="inner"
+        how="inner",
     )
 
-    # Remove dates with missing interest-rate changes.
-    combined = combined.dropna(subset=["yield_change"])
+    return combined.dropna(subset=["yield_change"])
 
-    return combined
