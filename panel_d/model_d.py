@@ -322,13 +322,22 @@ def render(scenario: dict) -> None:
     st.subheader("Panel 4 -  What could it become?")
     headline_slot = st.empty()
 
+    # --- Default inflation: the scenario's if it has one, else Ireland's latest real rate ---
+    scenario_inflation = scenario.get("inflation")
+    if scenario_inflation is not None:
+        default_inflation = scenario_inflation
+        inflation_source = f"the {scenario['name']} scenario"
+    else:
+        default_inflation, wb_year = latest_inflation(load_world_bank())
+        inflation_source = f"Ireland's latest real rate, {wb_year}, World Bank"
+
     # --- Controls ---
     # Row 1: the three sliders
     c1, c2, c3 = st.columns(3)
     monthly = c1.slider("Monthly (€)", 0, 1000, 150, step=25)
     years = c2.slider("Years", 5, 40, 30)
     inflation = c3.slider("Inflation (% a year)", 0.0, 8.0,
-                          scenario["inflation"] * 100, step=0.5) / 100
+                          round(default_inflation * 100, 1), step=0.1) / 100
 
     # Row 2: the two amounts
     c4, c5 = st.columns(2)
@@ -407,9 +416,11 @@ def render(scenario: dict) -> None:
         c4.metric("Chance of goal", f"{chance_of_reaching(finals, goal):.0%}")
     st.caption("Dark band: the middle half of the 1,000 simulated futures. Light band: 90% of them. "
                "Dashed line: the money you paid in. This shows a range of possible outcomes, not a forecast.")
-    st.caption(f"Adjusted for {inflation:.1%} inflation a year, so values show what the money would buy today.")
-    st.caption("Source: daily SPY and TLT prices from Yahoo Finance since 2015 (via data.py, "
-               "with a saved CSV backup), turned into monthly returns. 1,000 simulated futures.")
+    st.caption(f"Adjusted for {inflation:.1%} inflation a year (default from {inflation_source}), "
+               f"so values show what the money would buy today.")
+    st.caption(f"Source: daily SPY and TLT prices from Yahoo Finance since 2015 and inflation from "
+               f"the World Bank (both via data.py, with saved CSV backups). 1,000 simulated futures "
+               f"using {method.lower()}.")
 
     # --- Download ---
     years_list = np.arange(years + 1)
@@ -425,4 +436,4 @@ def render(scenario: dict) -> None:
                        file_name="my_projection.csv", mime="text/csv")
 
 if __name__ == "__main__":
-    render({"name": "Placeholder", "shock_pp": 0.0, "inflation": 0.025, "rf": 0.04})
+    render({"name": "Placeholder", "shock_pp": 0.0, "inflation": None, "rf": 0.04})
