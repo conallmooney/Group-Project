@@ -5,6 +5,13 @@ import streamlit as st
 
 from scenarios import get_scenario_names, get_scenario
 
+from market_data_b import (
+    load_etf_prices,
+    load_treasury_yields,
+    prepare_regression_data,
+)
+from interest_rate_model_b import calculate_sensitivities
+
 st.set_page_config(
     page_title="Rates, Risk & Returns",
     page_icon="📈",
@@ -59,3 +66,20 @@ frequency = st.selectbox(
 )
 
 st.write("Selected frequency:", frequency)
+
+
+if st.button("Calculate Sensitivities"):
+    with st.spinner("Loading market data and calculating sensitivities..."):
+        prices = load_etf_prices()
+        yields = load_treasury_yields()
+
+        regression_data = prepare_regression_data(
+            prices,
+            yields,
+            frequency=frequency,
+        )
+
+        sensitivities = calculate_sensitivities(regression_data)
+
+    st.subheader("Regression Results")
+    st.dataframe(sensitivities, use_container_width=True)
