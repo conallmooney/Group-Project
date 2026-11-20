@@ -1,7 +1,11 @@
 """Panel 4 - What could it become?
 
-Shows how a monthly saver's money could grow over time, 
-using 1,000 simulated futures and adjusted for inflation."""
+Simulates 1,000 possible futures for a monthly saver and shows the range of
+outcomes as a fan chart, in today's euros.
+
+Author: Hannah McElligott (Person D, Panel 4 owner)
+Data: daily SPY and TLT prices from Yahoo Finance and Irish inflation from the
+World Bank, both loaded through data.py (with saved CSV backups)."""
 
 import numpy as np
 import streamlit as st
