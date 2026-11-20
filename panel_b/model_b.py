@@ -25,11 +25,31 @@ def render(scenario: dict) -> None:
         ["Monthly", "Weekly", "Daily"],
     )
 
+
+    start_year = st.selectbox(
+        "Regression start year:",
+        [2015, 2017, 2019, 2021],
+        index=0,
+    )
+
+
     
     if st.button("Calculate Sensitivities"):
         with st.spinner("Loading market data and calculating sensitivities..."):
-            prices = load_etf_prices()
-            yields = load_treasury_yields()
+            
+            start_date = f"{start_year}-01-01"
+            end_date = "2025-01-01"
+
+            prices = load_etf_prices(
+                start=start_date,
+                end=end_date,
+            )
+
+            yields = load_treasury_yields(
+                start=start_date,
+                end=end_date,
+            )
+
 
             regression_data = prepare_regression_data(
                 prices,
@@ -41,11 +61,15 @@ def render(scenario: dict) -> None:
 
             st.session_state["panel_b_sensitivities"] = sensitivities
             st.session_state["panel_b_frequency"] = frequency
+            st.session_state["panel_b_start_year"] = start_year
 
+    
     if (
         "panel_b_sensitivities" in st.session_state
         and st.session_state.get("panel_b_frequency") == frequency
+        and st.session_state.get("panel_b_start_year") == start_year
     ):
+
         sensitivities = st.session_state["panel_b_sensitivities"]
 
 
