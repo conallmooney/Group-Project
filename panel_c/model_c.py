@@ -370,6 +370,8 @@ def render(scenario: dict | None = None) -> None:
         "weights": optimal_weights.tolist(),
         "annual_return": float(optimal_return),
         "annual_volatility": float(optimal_volatility),
+        "expected_return": float(optimal_return),
+        "volatility": float(optimal_volatility),
         "sharpe": float(optimal_sharpe),
         "risk_free_rate": float(risk_free_rate),
         "estimation_start": prices.index.min().strftime("%Y-%m-%d"),
