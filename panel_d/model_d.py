@@ -9,13 +9,14 @@ import plotly.graph_objects as go
 import pandas as pd
 
 from style import ACCENT, INK, MUTED
+from data import load_prices
 
-# Return and volatility for each risk profile (yearly, as decimals).
-# Long-run assumptions, matching docs/risk_quiz.md.
-PROFILES = {
-    "Cautious": {"return": 0.045, "volatility": 0.07},
-    "Balanced": {"return": 0.065, "volatility": 0.11},
-    "Adventurous": {"return": 0.085, "volatility": 0.16},
+
+# Each risk profile is a real mix of shares (SPY) and bonds (TLT).
+# The return and volatility are measured from real prices since 2015.
+PROFILES = {"Cautious": {"shares": 0.3},
+    "Balanced": {"shares": 0.6},
+    "Adventurous": {"shares": 0.9},   
 }
 
 # The three risk-quiz questions. Answers are in order of score: 0, 1, 2.
@@ -299,10 +300,13 @@ def render(scenario: dict) -> None:
             scores.append(q["answers"].index(answer))
 
     profile = quiz_to_profile(scores)
-    annual_return = PROFILES[profile]["return"]
-    volatility = PROFILES[profile]["volatility"]
-    st.caption(f"Your answers suggest a **{profile}** profile: "
-               f"{annual_return:.1%} expected return and {volatility:.0%} volatility a year.")
+    prices = load_prices(("SPY", "TLT"))
+    real_monthly = monthly_returns(prices)
+    share_weight = PROFILES[profile]["shares"]
+    annual_return, volatility = mix_stats(real_monthly, share_weight)
+    st.caption(f"Your answers suggest a **{profile}** profile: {share_weight:.0%} shares (SPY), "
+               f"{1 - share_weight:.0%} bonds (TLT). Real history since 2015: "
+               f"{annual_return:.1%} average return and {volatility:.0%} volatility a year.")
 
     # --- Simulation ---
     paths = simulate_paths(start, monthly, annual_return, volatility, years)
@@ -342,7 +346,7 @@ def render(scenario: dict) -> None:
                       annotation_text=f"Goal €{goal:,.0f}", annotation_position="top left")
         
     fig.update_layout(margin=dict(l=10, r=10, t=10, b=10),xaxis_title="Years from now", yaxis_title="Value in today's €", yaxis=dict(tickprefix="€",tickformat=",.0f", rangemode="tozero"),hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0),height=420, showlegend=False)
-    st.plotly_chart(fig, theme = None) 
+    st.plotly_chart(fig, theme=None) 
 
     # --- Results ---
     c1, c2, c3, c4 = st.columns(4)
@@ -354,8 +358,8 @@ def render(scenario: dict) -> None:
     st.caption("Dark band: the middle half of the 1,000 simulated futures. Light band: 90% of them. "
                "Dashed line: the money you paid in. This shows a range of possible outcomes, not a forecast.")
     st.caption(f"Adjusted for {inflation:.1%} inflation a year, so values show what the money would buy today.")
-    st.caption("Source: Monte Carlo simulation with random monthly returns. Returns and volatility "
-               "are long-run assumptions for each risk profile.")
+    st.caption("Source: daily SPY and TLT prices from Yahoo Finance since 2015 (via data.py, "
+               "with a saved CSV backup), turned into monthly returns. 1,000 simulated futures.")
 
     # --- Download ---
     years_list = np.arange(years + 1)
