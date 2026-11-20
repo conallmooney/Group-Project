@@ -22,6 +22,7 @@ def render(scenario: dict) -> None:
         ["Monthly", "Weekly", "Daily"],
     )
 
+    
     if st.button("Calculate Sensitivities"):
         with st.spinner("Loading market data and calculating sensitivities..."):
             prices = load_etf_prices()
@@ -34,6 +35,16 @@ def render(scenario: dict) -> None:
             )
 
             sensitivities = calculate_sensitivities(regression_data)
+
+            st.session_state["panel_b_sensitivities"] = sensitivities
+            st.session_state["panel_b_frequency"] = frequency
+
+    if (
+        "panel_b_sensitivities" in st.session_state
+        and st.session_state.get("panel_b_frequency") == frequency
+    ):
+        sensitivities = st.session_state["panel_b_sensitivities"]
+
 
         st.subheader("Regression Results")
         st.dataframe(sensitivities, use_container_width=True)
