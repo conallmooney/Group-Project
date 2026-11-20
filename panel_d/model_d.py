@@ -365,8 +365,25 @@ def render(scenario: dict) -> None:
                f"{1 - share_weight:.0%} bonds (TLT). Real history since 2015: "
                f"{annual_return:.1%} average return and {volatility:.0%} volatility a year.")
 
-    method = st.radio("Simulation method",
-                      ["Real past months (bootstrap)", "Bell curve"], horizontal=True)
+    # --- Panel 3 link: use C's optimal portfolio if it exists ---
+    source = st.radio("Use returns from", ["My risk quiz", "My Panel 3 portfolio"], horizontal=True)
+    p3 = st.session_state.get("p3_result")
+    use_p3 = source == "My Panel 3 portfolio" and p3 is not None
+
+    if source == "My Panel 3 portfolio" and p3 is None:
+        st.info("Panel 3 hasn't built a portfolio yet, so your risk quiz is used for now.")
+
+    if use_p3:
+        annual_return = p3["expected_return"]
+        volatility = p3["volatility"]
+        mix_text = ", ".join(f"{t} {w:.0%}" for t, w in zip(p3["tickers"], p3["weights"]))
+        st.caption(f"Using your Panel 3 portfolio ({mix_text}): {annual_return:.1%} expected "
+                   f"return and {volatility:.0%} volatility a year.")
+        method = "Bell curve"
+        st.caption("Panel 3 portfolios are simulated with the bell curve, using Panel 3's estimates.")
+    else:
+        method = st.radio("Simulation method",
+                          ["Real past months (bootstrap)", "Bell curve"], horizontal=True)
 
     # --- Simulation ---
     if method == "Real past months (bootstrap)":
