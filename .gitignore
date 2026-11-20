@@ -14,4 +14,4 @@ __pycache__/
 .DS_Store
 
 # Temporary Streamlit test
-test_streamlit.py
+test_streamlit.py.pytest_cache/
