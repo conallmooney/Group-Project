@@ -111,6 +111,114 @@ def optimise_portfolio(
     return weights
 
 
+def efficient_frontier(
+    annual_returns: pd.Series,
+    annual_covariance: pd.DataFrame,
+    max_weight: float,
+    n_points: int = 30,
+) -> pd.DataFrame:
+    """Calculate minimum-risk portfolios across feasible return targets."""
+    n_assets = len(annual_returns)
+
+    if n_assets * max_weight < 1 - 1e-9:
+        raise ValueError("The allocation limit is too low.")
+
+    means = annual_returns.to_numpy()
+    covariance = annual_covariance.to_numpy()
+    initial_weights = np.full(n_assets, 1 / n_assets)
+    bounds = [(0.0, max_weight)] * n_assets
+    total_weight = {
+        "type": "eq",
+        "fun": lambda weights: weights.sum() - 1,
+    }
+
+    def portfolio_variance(weights: np.ndarray) -> float:
+        """Return annual portfolio variance."""
+        return float(weights @ covariance @ weights)
+
+    # Find the lowest-risk feasible portfolio
+    minimum = minimize(
+        portfolio_variance,
+        initial_weights,
+        method="SLSQP",
+        bounds=bounds,
+        constraints=total_weight,
+        options={"maxiter": 1000, "ftol": 1e-10},
+    )
+
+    if not minimum.success:
+        raise ValueError("Could not calculate the minimum-risk portfolio.")
+
+    # Find the highest achievable return under the allocation limit
+    highest = minimize(
+        lambda weights: -float(weights @ means),
+        initial_weights,
+        method="SLSQP",
+        bounds=bounds,
+        constraints=total_weight,
+        options={"maxiter": 1000, "ftol": 1e-10},
+    )
+
+    if not highest.success:
+        raise ValueError("Could not calculate the highest feasible return.")
+
+    start_return = float(minimum.x @ means)
+    end_return = float(highest.x @ means)
+    targets = np.linspace(start_return, end_return, n_points)
+
+    # A binding allocation limit can leave only one feasible portfolio
+    if np.isclose(start_return, end_return, atol=1e-9, rtol=0):
+        targets = np.array([start_return])
+
+    rows = []
+    starting_weights = minimum.x
+
+    for target in targets:
+        constraints = [
+            total_weight,
+            {
+                "type": "ineq",
+                "fun": lambda weights, target=target: (
+                    float(weights @ means) - target
+                ),
+            },
+        ]
+
+        result = minimize(
+            portfolio_variance,
+            starting_weights,
+            method="SLSQP",
+            bounds=bounds,
+            constraints=constraints,
+            options={"maxiter": 1000, "ftol": 1e-10},
+        )
+
+        if not result.success:
+            raise ValueError("Could not calculate every frontier point.")
+
+        weights = result.x
+        actual_return = float(weights @ means)
+
+        if (
+            not np.isfinite(weights).all()
+            or abs(weights.sum() - 1) > 1e-6
+            or (weights < -1e-6).any()
+            or (weights > max_weight + 1e-6).any()
+            or actual_return < target - 1e-6
+        ):
+            raise ValueError("The frontier returned an invalid portfolio.")
+
+        rows.append({
+            "Return": actual_return,
+            "Volatility": float(
+                np.sqrt(max(portfolio_variance(weights), 0.0))
+            ),
+        })
+        starting_weights = weights
+
+    return pd.DataFrame(rows)
+
+
 def allocation_chart(allocation: pd.DataFrame) -> go.Figure:
     """Show the optimised portfolio allocation using the shared asset colours."""
     # Exclude allocations too small to display meaningfully
@@ -295,6 +403,81 @@ def render(scenario: dict | None = None) -> None:
         "Optimisation uses historical estimates and an assumed 3% annual "
         "risk-free rate. Historical performance does not guarantee future results."
     )
+
+    # --- Efficient frontier ---
+    st.write("The trade-off between estimated return and risk")
+
+    try:
+        frontier = efficient_frontier(
+            annual_returns,
+            annual_covariance,
+            max_weight,
+        )
+    except ValueError as error:
+        st.warning(f"Efficient frontier unavailable: {error}")
+    else:
+        fig = go.Figure()
+
+        fig.add_trace(go.Scatter(
+            x=frontier["Volatility"],
+            y=frontier["Return"],
+            mode="lines+markers",
+            name="Efficient frontier",
+            line=dict(color="#0E6E8C", width=3),
+            marker=dict(size=5),
+            hovertemplate=(
+                "Annual volatility: %{x:.2%}<br>"
+                "Estimated annual return: %{y:.2%}<extra></extra>"
+            ),
+        ))
+
+        fig.add_trace(go.Scatter(
+            x=[optimal_volatility],
+            y=[optimal_return],
+            mode="markers",
+            name="Maximum-Sharpe portfolio",
+            marker=dict(
+                symbol="star",
+                size=18,
+                color="#D99A1A",
+            ),
+            hovertemplate=(
+                "Maximum-Sharpe portfolio<br>"
+                "Annual volatility: %{x:.2%}<br>"
+                "Estimated annual return: %{y:.2%}<extra></extra>"
+            ),
+        ))
+
+        fig.add_trace(go.Scatter(
+            x=[volatility],
+            y=[expected_return],
+            mode="markers",
+            name="Equal-weight portfolio",
+            marker=dict(size=10, color="#5A6878"),
+            hovertemplate=(
+                "Equal-weight portfolio<br>"
+                "Annual volatility: %{x:.2%}<br>"
+                "Estimated annual return: %{y:.2%}<extra></extra>"
+            ),
+        ))
+
+        fig.update_layout(
+            height=440,
+            xaxis_title="Annual volatility",
+            yaxis_title="Estimated annual return",
+            xaxis_tickformat=".0%",
+            yaxis_tickformat=".0%",
+            legend=dict(orientation="h", y=1.15, x=0),
+        )
+
+        st.plotly_chart(fig, width="stretch", theme=None)
+
+        st.caption(
+            "The curve shows the lowest estimated volatility available "
+            "for each return target, using your selected assets and "
+            "allocation limit. The star marks the maximum-Sharpe portfolio. "
+            "All results use historical estimates."
+        )
 
     # --- Check the downloaded prices ---
     st.write("Latest adjusted closing prices")
