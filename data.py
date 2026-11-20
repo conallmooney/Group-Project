@@ -10,6 +10,7 @@ import threading
 import pandas as pd
 import streamlit as st
 import wbgapi as wb
+import yfinance as yf
 
 FALLBACK_DIR = Path(__file__).parent / "data" / "fallback"
 WB_FALLBACK = FALLBACK_DIR / "world_bank.csv"
@@ -117,6 +118,75 @@ def save_snapshot() -> None:
     FALLBACK_DIR.mkdir(parents=True, exist_ok=True)
     _download_world_bank(2000, 2024).to_csv(WB_FALLBACK, index=False)
     print(f"Saved {WB_FALLBACK}")
+
+
+# --- ETF prices for the portfolio panel ---
+
+@st.cache_data(ttl=60 * 60 * 24)
+def load_prices(
+    tickers: tuple[str, ...],
+    start: str = "2015-01-01",
+) -> pd.DataFrame:
+    """Return adjusted daily ETF prices, using a saved CSV if downloading fails."""
+    if not tickers:
+        raise ValueError("Choose at least one asset.")
+
+    fallback_path = FALLBACK_DIR / "etf_prices.csv"
+
+    try:
+        downloaded = yf.download(
+            tickers=list(tickers),
+            start=start,
+            auto_adjust=True,
+            progress=False,
+        )
+
+        if downloaded is None or downloaded.empty:
+            raise ValueError("No prices were downloaded.")
+
+        prices = downloaded["Close"].copy()
+        prices = prices.reindex(columns=list(tickers))
+        prices = prices.dropna(how="all")
+
+        missing = prices.columns[prices.isna().all()].tolist()
+        if missing:
+            raise ValueError(f"Missing prices for: {', '.join(missing)}")
+
+        return prices
+
+    except Exception as error:
+        if not fallback_path.exists():
+            raise RuntimeError(
+                "Price download failed and no saved ETF data is available."
+            ) from error
+
+        prices = pd.read_csv(
+            fallback_path,
+            index_col=0,
+            parse_dates=True,
+        )
+
+        missing = [
+            ticker for ticker in tickers
+            if ticker not in prices.columns
+        ]
+        if missing:
+            raise ValueError(
+                f"Saved data does not contain: {', '.join(missing)}"
+            ) from error
+
+        prices = prices.loc[
+            prices.index >= pd.Timestamp(start),
+            list(tickers),
+        ].dropna(how="all")
+
+        if prices.empty or prices.isna().all().any():
+            raise ValueError(
+                "Saved data does not cover the requested assets and dates."
+            ) from error
+
+        st.warning("Live prices unavailable. Using saved ETF prices.")
+        return prices
 
 
 if __name__ == "__main__":
