@@ -1,4 +1,7 @@
-"""Shared look for every chart in the dashboard. Import this before making a chart."""
+"""Shared look for every chart in the dashboard. Import this before making a chart.
+
+Author: Ciara Feeney (Person A): colours, region and asset colour maps, Plotly template.
+"""
 import plotly.graph_objects as go
 import plotly.io as pio
 
