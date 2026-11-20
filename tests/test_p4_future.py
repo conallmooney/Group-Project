@@ -6,7 +6,7 @@ import pandas as pd
 
 from panel_d.model_d import (chance_of_reaching, fan_percentiles, monthly_rate, grow_savings, simulate_one_future, 
                               simulate_paths, to_todays_euros, fan_percentiles, chance_of_reaching, 
-                              quiz_to_profile, paid_in_todays_euros, monthly_returns)
+                              quiz_to_profile, paid_in_todays_euros, monthly_returns, mix_stats)
 
 
 def test_monthly_rate_compounds_to_yearly():
@@ -79,7 +79,7 @@ def test_inflation_makes_paid_in_worth_less():
     """With inflation, the same payments are worth less in today's money."""
     paid = paid_in_todays_euros(1000, 150, 0.025, 30)
     assert paid[-1] < 1000 + 150 * 360
-    
+
 
 def test_monthly_returns_known_answer():
     """Month-end prices 100, 110, 121 give two monthly returns of exactly 10%."""
@@ -89,3 +89,12 @@ def test_monthly_returns_known_answer():
     result = monthly_returns(prices)
     assert len(result) == 2
     assert result["SPY"].tolist() == pytest.approx([0.10, 0.10])
+
+
+def test_mix_stats_known_answer():
+    """SPY always +2%, TLT always 0%: a 50/50 mix earns exactly 1% a month, with no volatility."""
+    monthly = pd.DataFrame({"SPY": [0.02, 0.02, 0.02], "TLT": [0.0, 0.0, 0.0]})
+    yearly_return, yearly_volatility = mix_stats(monthly, 0.5)
+    assert yearly_return == pytest.approx(1.01 ** 12 - 1)
+    assert yearly_volatility == pytest.approx(0.0)
+

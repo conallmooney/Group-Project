@@ -55,6 +55,25 @@ def monthly_returns(prices: pd.DataFrame) -> pd.DataFrame:
     return month_end.pct_change().dropna()
 
 
+def mix_stats(monthly: pd.DataFrame, share_weight: float) -> tuple[float, float]:
+    """Real yearly return and volatility of a share/bond mix.
+
+    Each month the mix earns share_weight of SPY's return plus the rest
+    from TLT's return.
+
+    Args:
+        monthly (pd.DataFrame): Monthly returns with "SPY" and "TLT" columns.
+        share_weight (float): Share of the money in SPY, e.g. 0.6 for 60%.
+
+    Returns:
+        tuple[float, float]: (yearly return, yearly volatility) as decimals.
+    """
+    mix = share_weight * monthly["SPY"] + (1 - share_weight) * monthly["TLT"]
+    yearly_return = (1 + mix.mean()) ** 12 - 1
+    yearly_volatility = mix.std() * np.sqrt(12)
+    return float(yearly_return), float(yearly_volatility)
+
+
 def grow_savings(start: float, monthly: float, annual_return: float, years: int) -> float:
     """Grow savings month by month at a fixed return.
 
