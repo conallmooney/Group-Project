@@ -9,7 +9,10 @@ from market_data_b import (
     load_treasury_yields,
     prepare_regression_data,
 )
-from interest_rate_model_b import calculate_sensitivities
+from interest_rate_model_b import (
+    calculate_sensitivities,
+    calculate_scenario_impacts,
+)
 
 
 def render(scenario: dict) -> None:
@@ -75,3 +78,52 @@ def render(scenario: dict) -> None:
             "Source: Yahoo Finance ETF prices and FRED DGS10 Treasury yields. "
             "Sensitivities are historical regression estimates, not guaranteed forecasts."
         )
+
+
+        st.subheader("Interest-Rate Shock Simulator")
+
+        shock = st.slider(
+            "Change in Treasury yields (percentage points)",
+            min_value=-3.0,
+            max_value=3.0,
+            value=float(scenario["shock_pp"]),
+            step=0.25,
+        )
+
+        impacts = calculate_scenario_impacts(
+            sensitivities,
+            shock,
+        )
+
+        st.dataframe(
+            impacts[["ETF", "Beta", "Scenario_Impact"]],
+            use_container_width=True,
+        )
+
+        impact_chart = px.bar(
+            impacts.sort_values("Scenario_Impact"),
+            x="ETF",
+            y="Scenario_Impact",
+            color="Scenario_Impact",
+            color_continuous_scale="RdYlGn",
+            title=f"Estimated ETF Impact of a {shock:+.2f} pp Yield Change",
+            labels={
+                "ETF": "ETF",
+                "Scenario_Impact": "Estimated ETF Return (%)",
+            },
+        )
+
+        impact_chart.update_layout(
+            coloraxis_showscale=False,
+        )
+
+        st.plotly_chart(
+            impact_chart,
+            use_container_width=True,
+        )
+
+        st.caption(
+            "Scenario impacts are linear extrapolations of historical "
+            "regression sensitivities, not guaranteed forecasts."
+        )
+
