@@ -22,9 +22,22 @@ st.write(
 
 st.subheader("Macroeconomic Scenario")
 
+
+def on_scenario_change():
+    """Reset the shock slider when a scenario is selected."""
+    selected = st.session_state["scenario_selector"]
+    selected_scenario = get_scenario(selected)
+
+    st.session_state["panel_b_shock"] = float(
+        selected_scenario["shock_pp"]
+    )
+
+
 scenario_name = st.selectbox(
     "Choose an economic scenario:",
     get_scenario_names(),
+    key="scenario_selector",
+    on_change=on_scenario_change,
 )
 
 scenario = get_scenario(scenario_name)
@@ -32,7 +45,12 @@ scenario = get_scenario(scenario_name)
 if scenario_name == "Custom":
     scenario["shock_pp"] = st.number_input(
         "Interest-rate shock (percentage points)",
-        value=float(scenario["shock_pp"]),
+        value=float(
+            st.session_state.get(
+                "panel_b_shock",
+                scenario["shock_pp"],
+            )
+        ),
         step=0.25,
     )
 
@@ -49,6 +67,7 @@ if scenario_name == "Custom":
     )
 
 st.session_state["scenario"] = scenario
+
 
 st.write("Selected scenario data:", scenario)
 

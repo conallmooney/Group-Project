@@ -69,8 +69,6 @@ def render(scenario: dict) -> None:
                 zip(sensitivities["ETF"], sensitivities["Beta"])
             )
 
-            st.write("Shared asset betas:", st.session_state["asset_betas"])
-
 
     
     if (
@@ -116,12 +114,16 @@ def render(scenario: dict) -> None:
         st.subheader("Interest-Rate Shock Simulator")
 
         
-        # Reset the slider when the economic scenario changes.
-        scenario_shock = float(scenario["shock_pp"])
+        
+        def on_shock_change():
+            """Switch to Custom when the shock slider is moved."""
+            st.session_state["scenario_selector"] = "Custom"
 
-        if st.session_state.get("panel_b_scenario") != scenario:
-            st.session_state["panel_b_shock"] = scenario_shock
-            st.session_state["panel_b_scenario"] = scenario.copy()
+        # Initialise the slider if no value exists yet.
+        if "panel_b_shock" not in st.session_state:
+            st.session_state["panel_b_shock"] = float(
+                scenario["shock_pp"]
+            )
 
         shock = st.slider(
             "Change in Treasury yields (percentage points)",
@@ -129,7 +131,9 @@ def render(scenario: dict) -> None:
             max_value=3.0,
             step=0.25,
             key="panel_b_shock",
+            on_change=on_shock_change,
         )
+
 
 
         impacts = calculate_scenario_impacts(
