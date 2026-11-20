@@ -152,6 +152,10 @@ def allocation_chart(allocation: pd.DataFrame) -> go.Figure:
 
 def render(scenario: dict | None = None) -> None:
     """Draw Panel 3 with equal-weight and optimised portfolio comparisons."""
+
+    # Clear previous results so invalid selections cannot leave stale data
+    st.session_state.pop("p3_result", None)
+
     st.subheader("Build a portfolio across shares, bonds and gold")
 
     # --- Controls ---
@@ -251,6 +255,19 @@ def render(scenario: dict | None = None) -> None:
     except ValueError as error:
         st.error(f"Unable to optimise the portfolio: {error}")
         return
+
+    # --- Share portfolio results with Panel D ---
+    st.session_state["p3_result"] = {
+        "tickers": list(tickers),
+        "weights": optimal_weights.tolist(),
+        "annual_return": float(optimal_return),
+        "annual_volatility": float(optimal_volatility),
+        "sharpe": float(optimal_sharpe),
+        "risk_free_rate": float(risk_free_rate),
+        "estimation_start": prices.index.min().strftime("%Y-%m-%d"),
+        "estimation_end": prices.index.max().strftime("%Y-%m-%d"),
+        "basis": "Historical estimates; assumed 3% risk-free rate",
+    }
 
     st.write("Maximum-Sharpe portfolio")
 
