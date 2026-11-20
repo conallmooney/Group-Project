@@ -336,8 +336,14 @@ def render(scenario: dict) -> None:
                f"{1 - share_weight:.0%} bonds (TLT). Real history since 2015: "
                f"{annual_return:.1%} average return and {volatility:.0%} volatility a year.")
 
+    method = st.radio("Simulation method",
+                      ["Real past months (bootstrap)", "Bell curve"], horizontal=True)
+
     # --- Simulation ---
-    paths = simulate_paths(start, monthly, annual_return, volatility, years)
+    if method == "Real past months (bootstrap)":
+        paths = bootstrap_paths(start, monthly, real_monthly, share_weight, years)
+    else:
+        paths = simulate_paths(start, monthly, annual_return, volatility, years)
     real_paths = to_todays_euros(paths, inflation)
     finals = real_paths[:, -1]
     fan = fan_percentiles(real_paths)
