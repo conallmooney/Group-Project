@@ -60,6 +60,22 @@ def monthly_returns(prices: pd.DataFrame) -> pd.DataFrame:
     return month_end.pct_change().dropna()
 
 
+def portfolio_returns(history: pd.DataFrame, weights: dict) -> pd.Series:
+    """Monthly returns of a mix of funds.
+
+    Args:
+        history (pd.DataFrame): Monthly returns, one column per fund.
+        weights (dict): Share of the money in each fund, e.g. {"SPY": 0.6, "TLT": 0.4}.
+
+    Returns:
+        pd.Series: The mix's return for every month.
+    """
+    mix = pd.Series(0.0, index=history.index)
+    for ticker, weight in weights.items():
+        mix = mix + weight * history[ticker]
+    return mix
+
+
 def mix_stats(monthly: pd.DataFrame, share_weight: float) -> tuple[float, float]:
     """Real yearly return and volatility of a share/bond mix.
 
@@ -203,15 +219,14 @@ def simulate_paths(start: float, monthly: float, annual_return: float, volatilit
     return paths
 
 
-def bootstrap_paths(start: float, monthly: float, history: pd.DataFrame, share_weight: float,
+def bootstrap_paths(start: float, monthly: float, mix: pd.Series,
                     years: int, n_futures: int = 1000, seed: int = 42) -> np.ndarray:
-    """Simulate many futures by re-using real historical months in a random order.
+    """Simulate many futures by re-using a portfolio's real months in a random order.
 
     Args:
         start (float): Money invested at the beginning, in euros.
         monthly (float): Money added at the end of each month, in euros.
-        history (pd.DataFrame): Real monthly returns with "SPY" and "TLT" columns.
-        share_weight (float): Share of the money in SPY, e.g. 0.6 for 60%.
+        mix (pd.Series): The portfolio's real monthly returns, from portfolio_returns.
         years (int): Number of years of saving.
         n_futures (int): How many futures to simulate.
         seed (int): Starting point for the random numbers, so results repeat.
@@ -220,7 +235,6 @@ def bootstrap_paths(start: float, monthly: float, history: pd.DataFrame, share_w
         np.ndarray: A grid with one row per future and one column per month.
     """
     months = years * 12
-    mix = share_weight * history["SPY"] + (1 - share_weight) * history["TLT"]
     rng = np.random.default_rng(seed)
     returns = rng.choice(mix.to_numpy(), size=(n_futures, months), replace=True)
 
@@ -361,6 +375,7 @@ def render(scenario: dict) -> None:
     real_monthly = monthly_returns(prices)
     share_weight = PROFILES[profile]["shares"]
     annual_return, volatility = mix_stats(real_monthly, share_weight)
+    real_mix = portfolio_returns(real_monthly, {"SPY": share_weight, "TLT": 1 - share_weight})
     st.caption(f"Your answers suggest a **{profile}** profile: {share_weight:.0%} shares (SPY), "
                f"{1 - share_weight:.0%} bonds (TLT). Real history since 2015: "
                f"{annual_return:.1%} average return and {volatility:.0%} volatility a year.")
@@ -376,18 +391,19 @@ def render(scenario: dict) -> None:
     if use_p3:
         annual_return = p3["expected_return"]
         volatility = p3["volatility"]
-        mix_text = ", ".join(f"{t} {w:.0%}" for t, w in zip(p3["tickers"], p3["weights"]))
+        p3_weights = dict(zip(p3["tickers"], p3["weights"]))
+        p3_monthly = monthly_returns(load_prices(tuple(p3["tickers"])))
+        real_mix = portfolio_returns(p3_monthly, p3_weights)
+        mix_text = ", ".join(f"{t} {w:.0%}" for t, w in p3_weights.items())
         st.caption(f"Using your Panel 3 portfolio ({mix_text}): {annual_return:.1%} expected "
                    f"return and {volatility:.0%} volatility a year.")
-        method = "Bell curve"
-        st.caption("Panel 3 portfolios are simulated with the bell curve, using Panel 3's estimates.")
-    else:
-        method = st.radio("Simulation method",
-                          ["Real past months (bootstrap)", "Bell curve"], horizontal=True)
+
+    method = st.radio("Simulation method",
+                      ["Real past months (bootstrap)", "Bell curve"], horizontal=True)
 
     # --- Simulation ---
     if method == "Real past months (bootstrap)":
-        paths = bootstrap_paths(start, monthly, real_monthly, share_weight, years)
+        paths = bootstrap_paths(start, monthly, real_mix, years)
     else:
         paths = simulate_paths(start, monthly, annual_return, volatility, years)
     real_paths = to_todays_euros(paths, inflation)

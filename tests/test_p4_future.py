@@ -6,7 +6,7 @@ import pandas as pd
 
 from panel_d.model_d import (chance_of_reaching, fan_percentiles, monthly_rate, grow_savings, simulate_one_future, 
                               simulate_paths, to_todays_euros, fan_percentiles, chance_of_reaching, 
-                              quiz_to_profile, paid_in_todays_euros, monthly_returns, mix_stats, bootstrap_paths, latest_inflation)
+                              quiz_to_profile, paid_in_todays_euros, monthly_returns, mix_stats, bootstrap_paths, latest_inflation, portfolio_returns)
 
 
 def test_monthly_rate_compounds_to_yearly():
@@ -101,8 +101,8 @@ def test_mix_stats_known_answer():
 
 def test_bootstrap_with_identical_months_matches_fixed_return():
     """If every real month was +1%, every bootstrapped future equals the fixed-return result."""
-    history = pd.DataFrame({"SPY": [0.01] * 5, "TLT": [0.01] * 5})
-    paths = bootstrap_paths(1000, 150, history, 0.6, 30)
+    mix = pd.Series([0.01] * 5)
+    paths = bootstrap_paths(1000, 150, mix, 30)
     assert paths.shape == (1000, 361)
     assert paths[:, -1] == pytest.approx(grow_savings(1000, 150, 1.01 ** 12 - 1, 30))
 
@@ -117,3 +117,11 @@ def test_latest_inflation_skips_missing_year():
     rate, year = latest_inflation(wb, "IRL")
     assert rate == pytest.approx(0.063)
     assert year == 2023   
+
+
+def test_portfolio_returns_known_answer():
+    """50% of +2% plus 30% of +10% plus 20% of -5% = +3% a month."""
+    history = pd.DataFrame({"SPY": [0.02], "GLD": [0.10], "TLT": [-0.05]})
+    mix = portfolio_returns(history, {"SPY": 0.5, "GLD": 0.3, "TLT": 0.2})
+    assert mix.iloc[0] == pytest.approx(0.03)
+
