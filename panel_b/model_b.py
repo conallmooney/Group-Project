@@ -3,6 +3,7 @@
 
 import streamlit as st
 import plotly.express as px
+import style
 
 from market_data_b import (
     load_etf_prices,
@@ -84,7 +85,12 @@ def render(scenario: dict) -> None:
         st.dataframe(sensitivities, use_container_width=True)
 
         chart_data = sensitivities.sort_values("Beta")
+        
+        chart_data = chart_data.copy()
 
+        chart_data["Direction"] = chart_data["Beta"].apply(
+            lambda beta: "Positive" if beta >= 0 else "Negative"
+        )
         most_negative = chart_data.iloc[0]
         most_positive = chart_data.iloc[-1]
 
@@ -97,8 +103,11 @@ def render(scenario: dict) -> None:
             chart_data,
             x="ETF",
             y="Beta",
-            color="Beta",
-            color_continuous_scale="RdYlGn",
+            color="Direction",
+            color_discrete_map={
+                "Positive": style.POSITIVE,
+                "Negative": style.NEGATIVE,
+            },
             hover_data={
                 "Beta": ":.2f",
                 "R_squared": ":.3f",
@@ -111,10 +120,7 @@ def render(scenario: dict) -> None:
             },
         )
 
-        fig.update_layout(
-            coloraxis_showscale=False,
-            yaxis_zeroline=True,
-        )
+        fig.update_layout(showlegend=False)
 
         st.plotly_chart(fig, use_container_width=True)
 
@@ -172,13 +178,22 @@ def render(scenario: dict) -> None:
             impacts[["ETF", "Beta", "Scenario_Impact"]],
             use_container_width=True,
         )
+        
+        impacts = impacts.copy()
+
+        impacts["Direction"] = impacts["Scenario_Impact"].apply(
+            lambda impact: "Positive" if impact >= 0 else "Negative"
+        )
 
         impact_chart = px.bar(
             impacts.sort_values("Scenario_Impact"),
             x="ETF",
             y="Scenario_Impact",
-            color="Scenario_Impact",
-            color_continuous_scale="RdYlGn",
+            color="Direction",
+            color_discrete_map={
+                "Positive": style.POSITIVE,
+                "Negative": style.NEGATIVE,
+            },
             title=f"Estimated ETF Impact of a {shock:+.2f} pp Yield Change",
             labels={
                 "ETF": "ETF",
@@ -186,9 +201,7 @@ def render(scenario: dict) -> None:
             },
         )
 
-        impact_chart.update_layout(
-            coloraxis_showscale=False,
-        )
+        impact_chart.update_layout(showlegend=False)
 
         st.plotly_chart(
             impact_chart,
