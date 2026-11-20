@@ -42,6 +42,19 @@ def monthly_rate(annual_return: float) -> float:
     return (1 + annual_return) ** (1 / 12) - 1
 
 
+def monthly_returns(prices: pd.DataFrame) -> pd.DataFrame:
+    """Turn daily prices into monthly returns.
+
+    Args:
+        prices (pd.DataFrame): Daily prices, one column per fund, dates as the index.
+
+    Returns:
+        pd.DataFrame: One row per month, the % change as a decimal (0.02 = +2%).
+    """
+    month_end = prices.resample("ME").last()
+    return month_end.pct_change().dropna()
+
+
 def grow_savings(start: float, monthly: float, annual_return: float, years: int) -> float:
     """Grow savings month by month at a fixed return.
 

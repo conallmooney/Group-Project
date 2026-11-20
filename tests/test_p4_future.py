@@ -2,10 +2,11 @@
 
 import pytest
 import numpy as np
+import pandas as pd
 
 from panel_d.model_d import (chance_of_reaching, fan_percentiles, monthly_rate, grow_savings, simulate_one_future, 
                               simulate_paths, to_todays_euros, fan_percentiles, chance_of_reaching, 
-                              quiz_to_profile, paid_in_todays_euros)
+                              quiz_to_profile, paid_in_todays_euros, monthly_returns)
 
 
 def test_monthly_rate_compounds_to_yearly():
@@ -78,3 +79,13 @@ def test_inflation_makes_paid_in_worth_less():
     """With inflation, the same payments are worth less in today's money."""
     paid = paid_in_todays_euros(1000, 150, 0.025, 30)
     assert paid[-1] < 1000 + 150 * 360
+    
+
+def test_monthly_returns_known_answer():
+    """Month-end prices 100, 110, 121 give two monthly returns of exactly 10%."""
+    days = pd.date_range("2024-01-01", "2024-03-31", freq="D")
+    values = [100 if d.month == 1 else 110 if d.month == 2 else 121 for d in days]
+    prices = pd.DataFrame({"SPY": values}, index=days)
+    result = monthly_returns(prices)
+    assert len(result) == 2
+    assert result["SPY"].tolist() == pytest.approx([0.10, 0.10])
