@@ -49,3 +49,13 @@ if scenario_name == "Custom":
     )
 
 st.write("Selected scenario data:", scenario)
+
+
+st.subheader("Interest Rate Sensitivity")
+
+frequency = st.selectbox(
+    "Choose data frequency:",
+    ["Monthly", "Weekly", "Daily"],
+)
+
+st.write("Selected frequency:", frequency)
