@@ -85,12 +85,25 @@ def render(scenario: dict) -> None:
 
         chart_data = sensitivities.sort_values("Beta")
 
+        most_negative = chart_data.iloc[0]
+        most_positive = chart_data.iloc[-1]
+
+        st.markdown(
+            f"**{most_negative['ETF']} has the strongest negative "
+            f"interest-rate sensitivity ({most_negative['Beta']:.2f}).**"
+        )
+
         fig = px.bar(
             chart_data,
             x="ETF",
             y="Beta",
             color="Beta",
             color_continuous_scale="RdYlGn",
+            hover_data={
+                "Beta": ":.2f",
+                "R_squared": ":.3f",
+                "Observations": True,
+            },
             title="ETF Sensitivity to a 1 Percentage-Point Rise in Treasury Yields",
             labels={
                 "ETF": "ETF",
@@ -110,6 +123,18 @@ def render(scenario: dict) -> None:
             "Sensitivities are historical regression estimates, not guaranteed forecasts."
         )
 
+        st.caption(
+            f"Analysis period: {start_year}–2024 | "
+            f"Frequency: {frequency} | "
+            f"Most positive sensitivity: {most_positive['ETF']} "
+            f"({most_positive['Beta']:+.2f})"
+        )
+
+        st.caption(
+            "R² measures how much of an ETF's historical return variation "
+            "is explained by Treasury yield changes. A low R² suggests "
+            "that other factors are important."
+        )
 
         st.subheader("Interest-Rate Shock Simulator")
 
