@@ -63,6 +63,15 @@ def render(scenario: dict) -> None:
             st.session_state["panel_b_frequency"] = frequency
             st.session_state["panel_b_start_year"] = start_year
 
+
+            # Share ETF interest-rate betas with Panel C.
+            st.session_state["asset_betas"] = dict(
+                zip(sensitivities["ETF"], sensitivities["Beta"])
+            )
+
+            st.write("Shared asset betas:", st.session_state["asset_betas"])
+
+
     
     if (
         "panel_b_sensitivities" in st.session_state
