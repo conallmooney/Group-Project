@@ -82,13 +82,22 @@ def render(scenario: dict) -> None:
 
         st.subheader("Interest-Rate Shock Simulator")
 
+        
+        # Reset the slider when the economic scenario changes.
+        scenario_shock = float(scenario["shock_pp"])
+
+        if st.session_state.get("panel_b_scenario") != scenario:
+            st.session_state["panel_b_shock"] = scenario_shock
+            st.session_state["panel_b_scenario"] = scenario.copy()
+
         shock = st.slider(
             "Change in Treasury yields (percentage points)",
             min_value=-3.0,
             max_value=3.0,
-            value=float(scenario["shock_pp"]),
             step=0.25,
+            key="panel_b_shock",
         )
+
 
         impacts = calculate_scenario_impacts(
             sensitivities,
