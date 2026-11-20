@@ -6,7 +6,7 @@ import pandas as pd
 
 from panel_d.model_d import (chance_of_reaching, fan_percentiles, monthly_rate, grow_savings, simulate_one_future, 
                               simulate_paths, to_todays_euros, fan_percentiles, chance_of_reaching, 
-                              quiz_to_profile, paid_in_todays_euros, monthly_returns, mix_stats, bootstrap_paths)
+                              quiz_to_profile, paid_in_todays_euros, monthly_returns, mix_stats, bootstrap_paths, latest_inflation)
 
 
 def test_monthly_rate_compounds_to_yearly():
@@ -105,3 +105,15 @@ def test_bootstrap_with_identical_months_matches_fixed_return():
     paths = bootstrap_paths(1000, 150, history, 0.6, 30)
     assert paths.shape == (1000, 361)
     assert paths[:, -1] == pytest.approx(grow_savings(1000, 150, 1.01 ** 12 - 1, 30))
+
+
+def test_latest_inflation_skips_missing_year():
+    """Takes Ireland's latest year that has a value (2023), skipping the blank 2024 and other countries."""
+    wb = pd.DataFrame({
+        "economy": ["IRL", "IRL", "IRL", "FRA"],
+        "year": [2022, 2023, 2024, 2024],
+        "inflation": [8.1, 6.3, None, 2.0],
+    })
+    rate, year = latest_inflation(wb, "IRL")
+    assert rate == pytest.approx(0.063)
+    assert year == 2023   

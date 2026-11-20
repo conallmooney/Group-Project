@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 import pandas as pd
 
 from style import ACCENT, INK, MUTED
-from data import load_prices
+from data import load_prices, load_world_bank
 
 
 # Each risk profile is a real mix of shares (SPY) and bonds (TLT).
@@ -73,6 +73,22 @@ def mix_stats(monthly: pd.DataFrame, share_weight: float) -> tuple[float, float]
     yearly_return = (1 + mix.mean()) ** 12 - 1
     yearly_volatility = mix.std() * np.sqrt(12)
     return float(yearly_return), float(yearly_volatility)
+
+
+def latest_inflation(world_bank: pd.DataFrame, country: str = "IRL") -> tuple[float, int]:
+    """Find a country's most recent inflation rate in the World Bank data.
+
+    Args:
+        world_bank (pd.DataFrame): Ciara's World Bank table, with "economy",
+            "year" and "inflation" (in %) columns.
+        country (str): Country code, e.g. "IRL" for Ireland.
+
+    Returns:
+        tuple[float, int]: (inflation as a decimal, the year it's from).
+    """
+    rows = world_bank[world_bank["economy"] == country].dropna(subset=["inflation"])
+    latest = rows.sort_values("year").iloc[-1]
+    return float(latest["inflation"]) / 100, int(latest["year"])
 
 
 def grow_savings(start: float, monthly: float, annual_return: float, years: int) -> float:
