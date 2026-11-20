@@ -6,7 +6,7 @@ import pandas as pd
 
 from panel_d.model_d import (chance_of_reaching, fan_percentiles, monthly_rate, grow_savings, simulate_one_future, 
                               simulate_paths, to_todays_euros, fan_percentiles, chance_of_reaching, 
-                              quiz_to_profile, paid_in_todays_euros, monthly_returns, mix_stats)
+                              quiz_to_profile, paid_in_todays_euros, monthly_returns, mix_stats, bootstrap_paths)
 
 
 def test_monthly_rate_compounds_to_yearly():
@@ -98,3 +98,10 @@ def test_mix_stats_known_answer():
     assert yearly_return == pytest.approx(1.01 ** 12 - 1)
     assert yearly_volatility == pytest.approx(0.0)
 
+
+def test_bootstrap_with_identical_months_matches_fixed_return():
+    """If every real month was +1%, every bootstrapped future equals the fixed-return result."""
+    history = pd.DataFrame({"SPY": [0.01] * 5, "TLT": [0.01] * 5})
+    paths = bootstrap_paths(1000, 150, history, 0.6, 30)
+    assert paths.shape == (1000, 361)
+    assert paths[:, -1] == pytest.approx(grow_savings(1000, 150, 1.01 ** 12 - 1, 30))

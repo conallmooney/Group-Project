@@ -183,6 +183,34 @@ def simulate_paths(start: float, monthly: float, annual_return: float, volatilit
     return paths
 
 
+def bootstrap_paths(start: float, monthly: float, history: pd.DataFrame, share_weight: float,
+                    years: int, n_futures: int = 1000, seed: int = 42) -> np.ndarray:
+    """Simulate many futures by re-using real historical months in a random order.
+
+    Args:
+        start (float): Money invested at the beginning, in euros.
+        monthly (float): Money added at the end of each month, in euros.
+        history (pd.DataFrame): Real monthly returns with "SPY" and "TLT" columns.
+        share_weight (float): Share of the money in SPY, e.g. 0.6 for 60%.
+        years (int): Number of years of saving.
+        n_futures (int): How many futures to simulate.
+        seed (int): Starting point for the random numbers, so results repeat.
+
+    Returns:
+        np.ndarray: A grid with one row per future and one column per month.
+    """
+    months = years * 12
+    mix = share_weight * history["SPY"] + (1 - share_weight) * history["TLT"]
+    rng = np.random.default_rng(seed)
+    returns = rng.choice(mix.to_numpy(), size=(n_futures, months), replace=True)
+
+    paths = np.zeros((n_futures, months + 1))
+    paths[:, 0] = start
+    for m in range(months):
+        paths[:, m + 1] = paths[:, m] * (1 + returns[:, m]) + monthly
+    return paths
+
+
 def to_todays_euros(paths: np.ndarray, inflation: float) -> np.ndarray:
     """Convert future values into today's euros by removing inflation.
 
