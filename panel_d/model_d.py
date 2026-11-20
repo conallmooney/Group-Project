@@ -346,8 +346,9 @@ def render(scenario: dict) -> None:
         default_inflation = scenario_inflation
         inflation_source = f"the {scenario['name']} scenario"
     else:
-        default_inflation, wb_year = latest_inflation(load_world_bank())
-        inflation_source = f"Ireland's latest real rate, {wb_year}, World Bank"
+        world_bank, wb_note = load_world_bank()
+        default_inflation, wb_year = latest_inflation(world_bank)
+        inflation_source = f"Ireland's latest real rate, {wb_year}, World Bank. {wb_note}"
 
     # --- Controls ---
     # Row 1: the three sliders
