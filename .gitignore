@@ -1,3 +1,6 @@
+
+.pytest_cache/
+.vscode/
 # Local Python environment
 .venv/
 
@@ -14,4 +17,4 @@ __pycache__/
 .DS_Store
 
 # Temporary Streamlit test
-test_streamlit.py.pytest_cache/
+test_streamlit.py
