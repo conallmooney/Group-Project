@@ -134,5 +134,5 @@ def test_scenario_inflation_converts_percent_to_decimal():
 
 
 def test_compound_annual_return_keeps_the_monthly_return():
-    """Panel 3's 12% (= 1% a month) must still mean exactly 1% a month in this panel."""
+    """An annualised arithmetic mean of 12% (1% a month) must still mean exactly 1% a month here."""
     assert monthly_rate(compound_annual_return(0.12)) == pytest.approx(0.01)

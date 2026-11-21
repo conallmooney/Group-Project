@@ -130,14 +130,15 @@ def scenario_inflation(scenario: dict) -> float | None:
 
 
 def compound_annual_return(arithmetic_annual: float) -> float:
-    """Turn an arithmetic annual return (12 x the monthly mean) into a compound one.
+    """Turn an annualised arithmetic mean return into a compound annual return.
 
-    Panel 3 reports returns as 12 times the average monthly return. This panel's
-    simulation expects a compound yearly rate, so this converts between them
-    while keeping the same monthly return.
+    Panel 3 reports an annualised arithmetic mean (mean daily return x 252).
+    Dividing by 12 gives the arithmetic monthly mean; compounding that over
+    12 months gives the yearly rate this panel's simulation expects, so both
+    panels mean the same monthly return.
 
     Args:
-        arithmetic_annual (float): Annual return as 12 x the monthly mean, e.g. 0.12.
+        arithmetic_annual (float): Annualised arithmetic mean return, e.g. 0.12.
 
     Returns:
         float: The equivalent compound annual return, e.g. 0.1268.
