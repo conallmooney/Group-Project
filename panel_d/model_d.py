@@ -129,6 +129,22 @@ def scenario_inflation(scenario: dict) -> float | None:
     return value / 100
 
 
+def compound_annual_return(arithmetic_annual: float) -> float:
+    """Turn an arithmetic annual return (12 x the monthly mean) into a compound one.
+
+    Panel 3 reports returns as 12 times the average monthly return. This panel's
+    simulation expects a compound yearly rate, so this converts between them
+    while keeping the same monthly return.
+
+    Args:
+        arithmetic_annual (float): Annual return as 12 x the monthly mean, e.g. 0.12.
+
+    Returns:
+        float: The equivalent compound annual return, e.g. 0.1268.
+    """
+    return (1 + arithmetic_annual / 12) ** 12 - 1
+
+
 def grow_savings(start: float, monthly: float, annual_return: float, years: int) -> float:
     """Grow savings month by month at a fixed return.
 
@@ -408,13 +424,14 @@ def render(scenario: dict) -> None:
         st.info("Panel 3 hasn't built a portfolio yet, so your risk quiz is used for now.")
 
     if use_p3:
-        annual_return = p3["expected_return"]
+        p3_return = p3["expected_return"]
+        annual_return = compound_annual_return(p3_return)
         volatility = p3["volatility"]
         p3_weights = dict(zip(p3["tickers"], p3["weights"]))
         p3_monthly = monthly_returns(load_prices(tuple(p3["tickers"])))
         real_mix = portfolio_returns(p3_monthly, p3_weights)
         mix_text = ", ".join(f"{t} {w:.0%}" for t, w in p3_weights.items())
-        st.caption(f"Using your Panel 3 portfolio ({mix_text}): {annual_return:.1%} expected "
+        st.caption(f"Using your Panel 3 portfolio ({mix_text}): {p3_return:.1%} expected "
                    f"return and {volatility:.0%} volatility a year.")
 
     method = st.radio("Simulation method",

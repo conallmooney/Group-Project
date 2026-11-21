@@ -6,7 +6,8 @@ import pandas as pd
 
 from panel_d.model_d import (chance_of_reaching, fan_percentiles, monthly_rate, grow_savings, simulate_one_future, 
                               simulate_paths, to_todays_euros, fan_percentiles, chance_of_reaching, 
-                              quiz_to_profile, paid_in_todays_euros, monthly_returns, mix_stats, bootstrap_paths, latest_inflation, portfolio_returns, scenario_inflation)
+                              quiz_to_profile, paid_in_todays_euros, monthly_returns, mix_stats, bootstrap_paths, 
+                              latest_inflation, portfolio_returns, scenario_inflation, compound_annual_return)
 
 
 def test_monthly_rate_compounds_to_yearly():
@@ -131,3 +132,7 @@ def test_scenario_inflation_converts_percent_to_decimal():
     assert scenario_inflation({"name": "Stagflation", "inflation": 3.5}) == pytest.approx(0.035)
     assert scenario_inflation({"name": "Placeholder", "inflation": None}) is None   
 
+
+def test_compound_annual_return_keeps_the_monthly_return():
+    """Panel 3's 12% (= 1% a month) must still mean exactly 1% a month in this panel."""
+    assert monthly_rate(compound_annual_return(0.12)) == pytest.approx(0.01)
