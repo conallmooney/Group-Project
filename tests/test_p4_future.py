@@ -6,7 +6,7 @@ import pandas as pd
 
 from panel_d.model_d import (chance_of_reaching, fan_percentiles, monthly_rate, grow_savings, simulate_one_future, 
                               simulate_paths, to_todays_euros, fan_percentiles, chance_of_reaching, 
-                              quiz_to_profile, paid_in_todays_euros, monthly_returns, mix_stats, bootstrap_paths, latest_inflation, portfolio_returns)
+                              quiz_to_profile, paid_in_todays_euros, monthly_returns, mix_stats, bootstrap_paths, latest_inflation, portfolio_returns, scenario_inflation)
 
 
 def test_monthly_rate_compounds_to_yearly():
@@ -124,4 +124,10 @@ def test_portfolio_returns_known_answer():
     history = pd.DataFrame({"SPY": [0.02], "GLD": [0.10], "TLT": [-0.05]})
     mix = portfolio_returns(history, {"SPY": 0.5, "GLD": 0.3, "TLT": 0.2})
     assert mix.iloc[0] == pytest.approx(0.03)
+
+
+def test_scenario_inflation_converts_percent_to_decimal():
+    """Person B's scenarios give inflation in percent: 3.5 must become 0.035."""
+    assert scenario_inflation({"name": "Stagflation", "inflation": 3.5}) == pytest.approx(0.035)
+    assert scenario_inflation({"name": "Placeholder", "inflation": None}) is None   
 

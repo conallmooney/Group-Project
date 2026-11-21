@@ -111,6 +111,24 @@ def latest_inflation(world_bank: pd.DataFrame, country: str = "IRL") -> tuple[fl
     return float(latest["inflation"]) / 100, int(latest["year"])
 
 
+def scenario_inflation(scenario: dict) -> float | None:
+    """The scenario's inflation as a decimal, or None if it has none.
+
+    Person B's scenarios store inflation in percent (3.5 means 3.5%),
+    so it is divided by 100 here.
+
+    Args:
+        scenario (dict): The chosen scenario from app.py.
+
+    Returns:
+        float | None: Inflation as a decimal (e.g. 0.035), or None.
+    """
+    value = scenario.get("inflation")
+    if value is None:
+        return None
+    return value / 100
+
+
 def grow_savings(start: float, monthly: float, annual_return: float, years: int) -> float:
     """Grow savings month by month at a fixed return.
 
@@ -341,9 +359,9 @@ def render(scenario: dict) -> None:
     headline_slot = st.empty()
 
     # --- Default inflation: the scenario's if it has one, else Ireland's latest real rate ---
-    scenario_inflation = scenario.get("inflation")
-    if scenario_inflation is not None:
-        default_inflation = scenario_inflation
+    scenario_infl = scenario_inflation(scenario)
+    if scenario_infl is not None:
+        default_inflation = scenario_infl
         inflation_source = f"the {scenario['name']} scenario"
     else:
         world_bank, wb_note = load_world_bank()
