@@ -28,8 +28,12 @@ Three questions decide the user's risk profile. Each answer scores 0, 1 or 2 poi
 
 ## What each profile means in the simulation
 
-| Profile | Expected return (per year) | Volatility (per year) |
-|---|---|---|
-| Cautious | 4.5% | 7% |
-| Balanced | 6.5% | 11% |
-| Adventurous | 8.5% | 16% |
+Each profile is a mix of shares (SPY, the S&P 500) and long-term US government bonds (TLT). Return and volatility are measured from real daily prices since January 2015.
+
+| Profile | Mix (SPY / TLT) | Historical return (per year) | Historical volatility (per year) |
+|---|---|---|---|
+| Cautious | 30% / 70% | 3.5% | 11% |
+| Balanced | 60% / 40% | 8.0% | 11% |
+| Adventurous | 90% / 10% | 12.8% | 14% |
+
+These are historical estimates, not forecasts. The figures update slightly as new prices are added.
