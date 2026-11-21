@@ -428,11 +428,16 @@ def render(scenario: dict) -> None:
         annual_return = compound_annual_return(p3_return)
         volatility = p3["volatility"]
         p3_weights = dict(zip(p3["tickers"], p3["weights"]))
-        p3_monthly = monthly_returns(load_prices(tuple(p3["tickers"])))
+        p3_prices = load_prices(tuple(p3["tickers"]), start=p3["estimation_start"])
+        p3_prices = p3_prices.loc[:p3["estimation_end"]]
+        p3_monthly = monthly_returns(p3_prices)
         real_mix = portfolio_returns(p3_monthly, p3_weights)
         mix_text = ", ".join(f"{t} {w:.0%}" for t, w in p3_weights.items())
         st.caption(f"Using your Panel 3 portfolio ({mix_text}): {p3_return:.1%} expected "
                    f"return and {volatility:.0%} volatility a year.")
+        st.caption(f"Bootstrap re-uses Panel 3's historical months "
+                   f"({p3['estimation_start']} to {p3['estimation_end']}), so it doesn't "
+                   f"reflect any scenario adjustment Panel 3 makes to expected returns.")
 
     method = st.radio("Simulation method",
                       ["Real past months (bootstrap)", "Bell curve"], horizontal=True)
@@ -491,9 +496,11 @@ def render(scenario: dict) -> None:
                "Dashed line: the money you paid in. This shows a range of possible outcomes, not a forecast.")
     st.caption(f"Adjusted for {inflation:.1%} inflation a year (default from {inflation_source}), "
                f"so values show what the money would buy today.")
-    st.caption(f"Source: daily SPY and TLT prices from Yahoo Finance since 2015 and inflation from "
-               f"the World Bank (both via data.py, with saved CSV backups). 1,000 simulated futures "
-               f"using {method.lower()}.")
+    fund_names = ", ".join(p3["tickers"]) if use_p3 else "SPY and TLT"
+    st.caption(f"Source: daily {fund_names} prices from Yahoo Finance and inflation from the World Bank "
+               f"(both via data.py, with saved CSV backups). Returns are historical estimates, not "
+               f"forecasts, and ETF prices are in US dollars, so exchange-rate effects are ignored. "
+               f"1,000 simulated futures using {method.lower()}.")
 
     # --- Download ---
     years_list = np.arange(years + 1)
