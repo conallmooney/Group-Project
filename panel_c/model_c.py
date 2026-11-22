@@ -262,6 +262,108 @@ def allocation_chart(allocation: pd.DataFrame) -> go.Figure:
     return fig
 
 
+def frontier_chart(
+    frontier: pd.DataFrame,
+    annual_returns: pd.Series,
+    annual_covariance: pd.DataFrame,
+    points: dict,
+    risk_free_rate: float,
+) -> go.Figure:
+    """Compare the frontier, individual assets and highlighted portfolios."""
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=frontier["Volatility"],
+        y=frontier["Return"],
+        mode="lines+markers",
+        name="Efficient frontier",
+        line=dict(color="#0E6E8C", width=3),
+        marker=dict(size=4),
+    ))
+
+    # Cash combined with the optimised portfolio, without borrowing
+    best_volatility, best_return = points["Maximum-Sharpe portfolio"]
+
+    if best_volatility > 0:
+        fig.add_trace(go.Scatter(
+            x=[0.0, best_volatility],
+            y=[risk_free_rate, best_return],
+            mode="lines",
+            name="Capital Market Line",
+            line=dict(color="#5A6878", width=2, dash="dash"),
+        ))
+
+    # A standalone asset's volatility is the square root of its variance
+    asset_volatility = np.sqrt(
+        np.maximum(np.diag(annual_covariance.to_numpy()), 0.0)
+    )
+
+    fig.add_trace(go.Scatter(
+        x=asset_volatility,
+        y=annual_returns.to_numpy(),
+        mode="markers+text",
+        name="Single assets",
+        text=list(annual_returns.index),
+        textposition="top center",
+        textfont=dict(size=11, color="#5A6878"),
+        marker=dict(
+            size=10,
+            color="white",
+            line=dict(color="#5A6878", width=2),
+        ),
+        hovertemplate=(
+            "%{text}<br>Annual volatility: %{x:.2%}<br>"
+            "Estimated annual return: %{y:.2%}<extra></extra>"
+        ),
+    ))
+
+    styles = {
+        "Equal-weight portfolio": dict(size=10, color="#5A6878"),
+        "Your allocation": dict(
+            symbol="diamond", size=12, color="#8E5AC8",
+        ),
+        "Maximum-Sharpe portfolio": dict(
+            symbol="star", size=18, color="#D99A1A",
+        ),
+    }
+
+    for name, (volatility, expected_return) in points.items():
+        fig.add_trace(go.Scatter(
+            x=[volatility],
+            y=[expected_return],
+            mode="markers",
+            name=name,
+            marker=styles[name],
+        ))
+
+    for trace in fig.data:
+        if trace.hovertemplate is None:
+            trace.hovertemplate = (
+                "Annual volatility: %{x:.2%}<br>"
+                "Estimated annual return: %{y:.2%}"
+                "<extra>%{fullData.name}</extra>"
+            )
+
+    fig.update_layout(
+        height=440,
+        xaxis_title="Annual volatility (risk)",
+        yaxis_title="Estimated annual return",
+        xaxis_tickformat=".0%",
+        yaxis_tickformat=".0%",
+        xaxis_rangemode="tozero",
+        legend=dict(
+            orientation="h",
+            y=1.02,
+            yanchor="bottom",
+            x=0,
+            font=dict(size=11),
+        ),
+        margin=dict(l=40, r=25, t=90, b=45),
+    )
+
+    return fig
+
+
 def historical_backtest(
     full_prices: pd.DataFrame,
     tickers: list[str],
@@ -600,13 +702,22 @@ def render(scenario: dict | None = None) -> None:
         "Allocation": optimal_weights,
     })
 
-    fig = allocation_chart(allocation)
-    st.plotly_chart(fig, width="stretch", theme=None)
+    # --- Main charts ---
+    frontier_column, allocation_column = st.columns([1.7, 1])
 
-    st.dataframe(
-        allocation.style.format({"Allocation": "{:.1%}"}),
-        hide_index=True,
+    allocation_column.write("Optimised allocation")
+    fig = allocation_chart(allocation)
+    allocation_column.plotly_chart(
+        fig,
+        width="stretch",
+        theme=None,
     )
+
+    with allocation_column.expander("View allocation table"):
+        st.dataframe(
+            allocation.style.format({"Allocation": "{:.1%}"}),
+            hide_index=True,
+        )
 
     st.caption(
         f"Allocations total 100%, with no short selling and a maximum "
@@ -670,7 +781,7 @@ def render(scenario: dict | None = None) -> None:
             )
 
     # --- Efficient frontier ---
-    st.write("The trade-off between estimated return and risk")
+    frontier_column.write("Risk vs Return (No Borrowing)")
 
     try:
         frontier = efficient_frontier(
@@ -679,87 +790,47 @@ def render(scenario: dict | None = None) -> None:
             max_weight,
         )
     except ValueError as error:
-        st.warning(f"Efficient frontier unavailable: {error}")
+        frontier_column.warning(
+            f"Efficient frontier unavailable: {error}"
+        )
     else:
-        fig = go.Figure()
-
-        fig.add_trace(go.Scatter(
-            x=frontier["Volatility"],
-            y=frontier["Return"],
-            mode="lines+markers",
-            name="Efficient frontier",
-            line=dict(color="#0E6E8C", width=3),
-            marker=dict(size=5),
-            hovertemplate=(
-                "Annual volatility: %{x:.2%}<br>"
-                "Estimated annual return: %{y:.2%}<extra></extra>"
-            ),
-        ))
-
-        fig.add_trace(go.Scatter(
-            x=[optimal_volatility],
-            y=[optimal_return],
-            mode="markers",
-            name="Maximum-Sharpe portfolio",
-            marker=dict(
-                symbol="star",
-                size=18,
-                color="#D99A1A",
-            ),
-            hovertemplate=(
-                "Maximum-Sharpe portfolio<br>"
-                "Annual volatility: %{x:.2%}<br>"
-                "Estimated annual return: %{y:.2%}<extra></extra>"
-            ),
-        ))
-
-        fig.add_trace(go.Scatter(
-            x=[volatility],
-            y=[expected_return],
-            mode="markers",
-            name="Equal-weight portfolio",
-            marker=dict(size=10, color="#5A6878"),
-            hovertemplate=(
-                "Equal-weight portfolio<br>"
-                "Annual volatility: %{x:.2%}<br>"
-                "Estimated annual return: %{y:.2%}<extra></extra>"
-            ),
-        ))
+        points = {
+            "Equal-weight portfolio": (volatility, expected_return),
+        }
 
         if custom_stats is not None:
-            fig.add_trace(go.Scatter(
-                x=[custom_stats[1]],
-                y=[custom_stats[0]],
-                mode="markers",
-                name="Your allocation",
-                marker=dict(
-                    symbol="diamond",
-                    size=12,
-                    color="#8E5AC8",
-                ),
-                hovertemplate=(
-                    "Your allocation<br>"
-                    "Annual volatility: %{x:.2%}<br>"
-                    "Estimated annual return: %{y:.2%}<extra></extra>"
-                ),
-            ))
+            points["Your allocation"] = (
+                custom_stats[1],
+                custom_stats[0],
+            )
 
-        fig.update_layout(
-            height=440,
-            xaxis_title="Annual volatility",
-            yaxis_title="Estimated annual return",
-            xaxis_tickformat=".0%",
-            yaxis_tickformat=".0%",
-            legend=dict(orientation="h", y=1.15, x=0),
+        points["Maximum-Sharpe portfolio"] = (
+            optimal_volatility,
+            optimal_return,
         )
 
-        st.plotly_chart(fig, width="stretch", theme=None)
+        fig = frontier_chart(
+            frontier,
+            annual_returns,
+            annual_covariance,
+            points,
+            risk_free_rate,
+        )
 
-        st.caption(
-            "The curve shows the lowest estimated volatility available "
-            "for each return target, using your selected assets and "
-            "allocation limit. The star marks the maximum-Sharpe portfolio. "
-            "Results use historical estimates with any scenario "
+        frontier_column.plotly_chart(
+            fig,
+            width="stretch",
+            theme=None,
+        )
+
+        frontier_column.caption(
+            "The frontier shows minimum estimated risk for each return "
+            "target under your allocation limit. Single assets represent "
+            "100% invested in one ETF, so they may exceed that limit. "
+            "The dashed line labelled Capital Market Line illustrates "
+            "risk-free cash combined "
+            "with the optimised portfolio and stops at the star: "
+            "borrowing is not included. Returns include any scenario "
             "adjustment described above."
         )
 
