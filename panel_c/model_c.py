@@ -15,6 +15,7 @@ from style import ASSET_COLOURS
 
 # Default assets used to build the portfolio
 DEFAULT_TICKERS = ["SPY", "TLT", "GLD", "XLE", "XLU"]
+AVAILABLE_TICKERS = DEFAULT_TICKERS + ["QQQ", "IWM", "EFA"]
 TRADING_DAYS = 252
 
 # Ticker -> description shown to the user
@@ -24,6 +25,9 @@ ASSET_NAMES = {
     "GLD": "Gold",
     "XLE": "US energy shares",
     "XLU": "US utilities shares",
+    "QQQ": "Nasdaq-100 shares",
+    "IWM": "US small-company shares",
+    "EFA": "Developed-market shares outside US and Canada",
 }
 
 
@@ -269,7 +273,7 @@ def render(scenario: dict | None = None) -> None:
     # --- Controls ---
     tickers = st.multiselect(
         "Choose your assets",
-        options=DEFAULT_TICKERS,
+        options=AVAILABLE_TICKERS,
         default=DEFAULT_TICKERS,
         format_func=lambda ticker: f"{ticker} — {ASSET_NAMES[ticker]}",
         key="p3_tickers",

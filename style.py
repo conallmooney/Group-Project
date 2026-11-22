@@ -24,7 +24,8 @@ REGION_COLOURS = {
 # Panel 3: one fixed colour per asset
 ASSET_COLOURS = {
     "SPY": ACCENT, "TLT": "#2E9E6A", "GLD": "#D99A1A",
-    "XLE": "#C9473F", "XLU": "#3BA7C9",
+    "XLE": "#C9473F", "XLU": "#3BA7C9", "QQQ": "#8E5AC8", "IWM": "#D2504A",
+    "EFA": "#8C6D46",
 }
 
 # One Plotly template that every chart uses automatically
