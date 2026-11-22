@@ -6,7 +6,7 @@ import streamlit as st
 import yfinance as yf
 
 
-DEFAULT_ETFS = ["SPY", "TLT", "GLD", "XLE", "XLU"]
+DEFAULT_ETFS = ["SPY", "TLT", "GLD", "XLE", "XLU", "QQQ", "IWM", "EFA"]
 
 
 @st.cache_data(ttl=60 * 60 * 24)
