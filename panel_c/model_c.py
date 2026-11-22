@@ -454,6 +454,78 @@ def render(scenario: dict | None = None) -> None:
             f"from the '{scenario_name}' scenario"
         )
 
+    # --- Scenario adjustments to estimated asset returns ---
+    scenario_adjusted = False
+    scenario_note = "Asset returns use historical estimates."
+    shock_pp = 0.0
+
+    if active_scenario is not None:
+        try:
+            shock_pp = float(active_scenario["shock_pp"])
+
+            if not np.isfinite(shock_pp):
+                raise ValueError(
+                    "The rate shock must be a finite number."
+                )
+        except (KeyError, TypeError, ValueError) as error:
+            st.error(f"Invalid scenario rate shock: {error}")
+            return
+
+        if shock_pp == 0:
+            scenario_note = (
+                "The selected rate shock is zero; asset returns use "
+                "historical estimates."
+            )
+        else:
+            asset_betas = st.session_state.get("asset_betas", {})
+
+            try:
+                betas = pd.Series(
+                    {
+                        ticker: float(asset_betas.get(ticker, np.nan))
+                        for ticker in tickers
+                    },
+                    dtype=float,
+                )
+            except (TypeError, ValueError, AttributeError):
+                betas = pd.Series(
+                    np.nan,
+                    index=tickers,
+                    dtype=float,
+                )
+
+            missing = betas.index[~np.isfinite(betas)].tolist()
+
+            if missing:
+                st.warning(
+                    "Rate-shock adjustment not applied: Panel B "
+                    "sensitivities are unavailable for "
+                    f"{', '.join(missing)}. "
+                    "Calculate sensitivities in Panel B. All selected "
+                    "assets currently retain their historical "
+                    "return estimates."
+                )
+
+                scenario_note = (
+                    "Asset returns remain historical because some "
+                    "Panel B sensitivities are unavailable."
+                )
+            else:
+                # Convert percentage units and spread over five years
+                adjustments = betas * shock_pp / 5 / 100
+                annual_returns = annual_returns.add(adjustments)
+
+                scenario_adjusted = True
+                scenario_note = (
+                    f"Asset returns include an illustrative "
+                    f"{shock_pp:+.2f} pp rate shock, using Panel B "
+                    "sensitivities divided by five and added to "
+                    "annual historical estimates. "
+                    "Historical covariance is unchanged."
+                )
+
+    st.caption(scenario_note)
+
     expected_return, volatility, sharpe = portfolio_stats(
         weights,
         annual_returns,
@@ -470,13 +542,14 @@ def render(scenario: dict | None = None) -> None:
     col3.metric("Sharpe ratio", f"{sharpe:.2f}")
 
     st.caption(
-        f"Each selected asset receives {1 / len(tickers):.1%} of the portfolio. "
-        "Historical arithmetic estimates using 252 trading days per year "
-        f"and {risk_free_note}. "
-        "Rate-shock adjustments to asset returns are not yet applied. "
+        f"Each selected asset receives {1 / len(tickers):.1%} "
+        "of the portfolio. "
+        "Estimates use historical daily returns, 252 trading days "
+        f"per year and {risk_free_note}. "
+        "Any scenario adjustment is described above. "
         "These estimates are not forecasts."
     )
-
+    
     # --- Optimised portfolio ---
     try:
         optimal_weights = optimise_portfolio(
@@ -508,9 +581,10 @@ def render(scenario: dict | None = None) -> None:
         "risk_free_rate": float(risk_free_rate),
         "estimation_start": prices.index.min().strftime("%Y-%m-%d"),
         "estimation_end": prices.index.max().strftime("%Y-%m-%d"),
+        "scenario_adjusted": scenario_adjusted,
+        "shock_pp": shock_pp,
         "basis": (
-            f"Historical return and risk estimates; {risk_free_note}; "
-            "rate-shock adjustments not yet applied"
+            f"{scenario_note} Calculations use {risk_free_note}."
         ),
     }
 
@@ -537,8 +611,9 @@ def render(scenario: dict | None = None) -> None:
     st.caption(
         f"Allocations total 100%, with no short selling and a maximum "
         f"of {max_weight:.0%} in any asset. "
-        f"Optimisation uses historical estimates and {risk_free_note}. "
-        "Rate-shock adjustments to asset returns are not yet applied. "
+        f"Optimisation uses {risk_free_note}. "
+        "Any scenario adjustment to estimated asset returns "
+        "is described above. "
         "Historical performance does not guarantee future results."
     )
 
@@ -684,7 +759,8 @@ def render(scenario: dict | None = None) -> None:
             "The curve shows the lowest estimated volatility available "
             "for each return target, using your selected assets and "
             "allocation limit. The star marks the maximum-Sharpe portfolio. "
-            "All results use historical estimates."
+            "Results use historical estimates with any scenario "
+            "adjustment described above."
         )
 
     # --- Historical backtest ---
