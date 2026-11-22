@@ -224,41 +224,60 @@ def efficient_frontier(
 
 
 def allocation_chart(allocation: pd.DataFrame) -> go.Figure:
-    """Show the optimised portfolio allocation using the shared asset colours."""
-    # Exclude allocations too small to display meaningfully
-    chart_df = allocation[allocation["Allocation"] > 1e-6].copy()
+    """Show all allocations, grouping small holdings without discarding them."""
+    chart_df = allocation[allocation["Allocation"] > 0].copy()
+    small = chart_df["Allocation"] < 0.005
+    other_weight = float(chart_df.loc[small, "Allocation"].sum())
+    chart_df = chart_df.loc[~small].copy()
+
+    if other_weight > 0:
+        chart_df = pd.concat([
+            chart_df,
+            pd.DataFrame({"Asset": ["Other"], "Allocation": [other_weight]}),
+        ], ignore_index=True)
+
+    chart_df = chart_df.sort_values("Allocation", ascending=False)
+    chart_df["Label"] = [
+        f"{asset}  {weight:.1%}"
+        for asset, weight in zip(chart_df["Asset"], chart_df["Allocation"])
+    ]
+    chart_df["Text"] = [
+        f"{weight:.0%}" if weight >= 0.03 else ""
+        for weight in chart_df["Allocation"]
+    ]
 
     fig = px.pie(
         chart_df,
-        names="Asset",
+        names="Label",
         values="Allocation",
         color="Asset",
-        color_discrete_map=ASSET_COLOURS,
-        hole=0.65,
+        color_discrete_map={**ASSET_COLOURS, "Other": "#B8C2CC"},
+        hole=0.6,
     )
-
     fig.update_traces(
-        textposition="outside",
-        textinfo="label+percent",
-        hovertemplate="%{label}: %{percent}<extra></extra>",
+        text=chart_df["Text"].tolist(),
+        textposition="inside",
+        texttemplate="%{text}",
+        insidetextfont=dict(color="white", size=13),
+        hovertemplate="%{label}<extra></extra>",
         sort=False,
+        direction="clockwise",
     )
-
     fig.update_layout(
-        height=380,
-        margin=dict(l=40, r=40, t=30, b=30),
-        showlegend=False,
-        annotations=[
-            dict(
-                text="Portfolio<br>allocation",
-                x=0.5,
-                y=0.5,
-                showarrow=False,
-                font=dict(size=18),
-            )
-        ],
+        height=440,
+        margin=dict(l=10, r=10, t=30, b=30),
+        showlegend=True,
+        legend=dict(
+            orientation="v", x=1.0, y=0.5,
+            xanchor="left", yanchor="middle",
+            font=dict(size=12),
+        ),
+        annotations=[dict(
+            text="Portfolio<br>allocation",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=15, color="#5A6878"),
+        )],
     )
-
     return fig
 
 
@@ -447,28 +466,37 @@ def render(scenario: dict | None = None) -> None:
     st.subheader("Build a portfolio across shares, bonds and gold")
 
     # --- Controls ---
-    tickers = st.multiselect(
-        "Choose your assets",
+    assets_col, limit_col, window_col = st.columns([2.2, 1, 1])
+
+    tickers = assets_col.multiselect(
+        "Assets",
         options=AVAILABLE_TICKERS,
         default=DEFAULT_TICKERS,
         format_func=lambda ticker: f"{ticker} — {ASSET_NAMES[ticker]}",
         key="p3_tickers",
     )
 
-    if len(tickers) < 3:
-        st.info("Choose at least three assets to build a portfolio.")
-        return
-
-    max_weight_pct = st.slider(
-        "Maximum allocation to one asset (%)",
+    max_weight_pct = limit_col.slider(
+        "Maximum allocation per asset (%)",
         min_value=10,
         max_value=100,
         value=60,
         step=5,
         key="p3_max_weight",
-        help="A lower limit prevents the portfolio concentrating in one asset.",
+        help="Limits concentration in the optimised portfolio.",
     )
+
+    lookback = window_col.selectbox(
+        "Estimation window",
+        options=["All available", "Last 3 years", "Last 5 years", "Last 10 years"],
+        key="p3_lookback",
+    )
+
     max_weight = max_weight_pct / 100
+
+    if len(tickers) < 3:
+        st.info("Choose at least three assets to build a portfolio.")
+        return
 
     if len(tickers) * max_weight < 1 - 1e-9:
         st.info(
@@ -477,13 +505,6 @@ def render(scenario: dict | None = None) -> None:
             "Increase the slider to the next available value."
         )
         return
-
-    lookback = st.selectbox(
-        "Historical estimation window",
-        options=["All available", "Last 3 years", "Last 5 years", "Last 10 years"],
-        key="p3_lookback",
-        help="Choose how much price history is used to estimate returns and risk.",
-    )
 
     # --- Load the data ---
     # Always include both benchmark assets for the historical backtest
@@ -634,23 +655,6 @@ def render(scenario: dict | None = None) -> None:
         annual_covariance,
         risk_free_rate,
     )
-
-    # --- Equal-weight portfolio ---
-    st.write("Equal-weight portfolio")
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Estimated annual return", f"{expected_return:.2%}")
-    col2.metric("Annual volatility", f"{volatility:.2%}")
-    col3.metric("Sharpe ratio", f"{sharpe:.2f}")
-
-    st.caption(
-        f"Each selected asset receives {1 / len(tickers):.1%} "
-        "of the portfolio. "
-        "Estimates use historical daily returns, 252 trading days "
-        f"per year and {risk_free_note}. "
-        "Any scenario adjustment is described above. "
-        "These estimates are not forecasts."
-    )
     
     # --- Optimised portfolio ---
     try:
@@ -690,33 +694,81 @@ def render(scenario: dict | None = None) -> None:
         ),
     }
 
-    st.write("Maximum-Sharpe portfolio")
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Estimated annual return", f"{optimal_return:.2%}")
-    col2.metric("Annual volatility", f"{optimal_volatility:.2%}")
-    col3.metric("Sharpe ratio", f"{optimal_sharpe:.2f}")
-
     allocation = pd.DataFrame({
         "Asset": tickers,
         "Allocation": optimal_weights,
     })
+    top = allocation.loc[allocation["Allocation"].idxmax()]
+
+    # --- Compact portfolio comparison ---
+    m1, m2, m3, m4 = st.columns(4)
+
+    m1.metric(
+        "Estimated annual return",
+        f"{optimal_return:.1%}",
+        f"{(optimal_return - expected_return) * 100:+.1f} pp vs equal weights",
+        border=True,
+    )
+    m2.metric(
+        "Annual volatility",
+        f"{optimal_volatility:.1%}",
+        f"{(optimal_volatility - volatility) * 100:+.1f} pp vs equal weights",
+        delta_color="inverse",
+        border=True,
+    )
+    m3.metric(
+        "Sharpe ratio",
+        f"{optimal_sharpe:.2f}",
+        f"{optimal_sharpe - sharpe:+.2f} vs equal weights",
+        border=True,
+    )
+    m4.metric(
+        "Largest holding",
+        str(top["Asset"]),
+        f"{top['Allocation']:.1%} of the portfolio",
+        delta_color="off",
+        border=True,
+    )
+
+    with st.expander("Compare portfolio metrics"):
+        comparison = pd.DataFrame({
+            "Portfolio": ["Equal weight", "Maximum Sharpe"],
+            "Estimated annual return": [expected_return, optimal_return],
+            "Annual volatility": [volatility, optimal_volatility],
+            "Sharpe ratio": [sharpe, optimal_sharpe],
+        })
+        st.dataframe(
+            comparison.style.format({
+                "Estimated annual return": "{:.2%}",
+                "Annual volatility": "{:.2%}",
+                "Sharpe ratio": "{:.2f}",
+            }),
+            hide_index=True,
+        )
+        st.caption(
+            "pp means percentage points. Both portfolios use the same "
+            "estimation window, scenario assumptions and risk-free rate."
+        )
 
     # --- Main charts ---
     frontier_column, allocation_column = st.columns([1.7, 1])
+    frontier_box = frontier_column.container(border=True)
+    allocation_box = allocation_column.container(border=True)
 
-    allocation_column.write("Optimised allocation")
+    frontier_box.markdown("**Risk vs Return (No Borrowing)**")
+    allocation_box.markdown("**Optimised allocation**")
+
     fig = allocation_chart(allocation)
-    allocation_column.plotly_chart(
-        fig,
-        width="stretch",
-        theme=None,
-    )
+    allocation_box.plotly_chart(fig, width="stretch", theme=None)
 
-    with allocation_column.expander("View allocation table"):
+    with allocation_box.expander("View allocation table"):
         st.dataframe(
             allocation.style.format({"Allocation": "{:.1%}"}),
             hide_index=True,
+        )
+        st.caption(
+            "Holdings below 0.5% are grouped as Other in the chart. "
+            "This table lists every selected asset."
         )
 
     st.caption(
@@ -781,7 +833,6 @@ def render(scenario: dict | None = None) -> None:
             )
 
     # --- Efficient frontier ---
-    frontier_column.write("Risk vs Return (No Borrowing)")
 
     try:
         frontier = efficient_frontier(
@@ -790,7 +841,7 @@ def render(scenario: dict | None = None) -> None:
             max_weight,
         )
     except ValueError as error:
-        frontier_column.warning(
+        frontier_box.warning(
             f"Efficient frontier unavailable: {error}"
         )
     else:
@@ -817,13 +868,13 @@ def render(scenario: dict | None = None) -> None:
             risk_free_rate,
         )
 
-        frontier_column.plotly_chart(
+        frontier_box.plotly_chart(
             fig,
             width="stretch",
             theme=None,
         )
 
-        frontier_column.caption(
+        frontier_box.caption(
             "The frontier shows minimum estimated risk for each return "
             "target under your allocation limit. Single assets represent "
             "100% invested in one ETF, so they may exceed that limit. "
