@@ -4,7 +4,6 @@
 import pandas as pd
 import streamlit as st
 import yfinance as yf
-from fredapi import Fred
 
 
 DEFAULT_ETFS = ["SPY", "TLT", "GLD", "XLE", "XLU"]
@@ -54,43 +53,43 @@ def load_treasury_yields(
     start: str = "2015-01-01",
     end: str = "2025-01-01",
 ) -> pd.DataFrame:
-    
     """
-    Download daily US 10-year Treasury yields from FRED.
-
-    Args:
-        start: Start date in YYYY-MM-DD format.
-        end: End date in YYYY-MM-DD format.
+    Download daily US 10-year Treasury yields from FRED
+    without requiring an API key.
 
     Returns:
-        DataFrame containing DGS10 Treasury yields expressed
-        as annual percentages, indexed by observation date.
-
-    Notes:
-        Requires a FRED_API_KEY in Streamlit secrets.
-        Missing observations may occur on public holidays.
+        DataFrame containing DGS10 Treasury yields,
+        expressed as annual percentages.
     """
 
+    url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10"
 
-    api_key = st.secrets["FRED_API_KEY"]
-    fred = Fred(api_key=api_key)
-
-    yields = fred.get_series(
-        "DGS10",
-        observation_start=start,
-        observation_end=end,
+    yields = pd.read_csv(
+        url,
+        parse_dates=["observation_date"],
+        index_col="observation_date",
+        na_values=["."],
     )
+
+    yields.index = pd.to_datetime(yields.index)
+
+    # Match the original function's date range.
+    yields = yields.loc[
+        (yields.index >= pd.Timestamp(start))
+        & (yields.index <= pd.Timestamp(end))
+    ]
+
+    yields["DGS10"] = pd.to_numeric(
+        yields["DGS10"],
+        errors="coerce",
+    )
+
+    yields = yields.dropna(subset=["DGS10"])
 
     if yields.empty:
         raise ValueError("No Treasury yield data was downloaded.")
 
-    yields = yields.to_frame(name="DGS10")
-    yields.index = pd.to_datetime(yields.index)
-
     return yields.sort_index()
-
-
-
 
 def prepare_regression_data(
     prices: pd.DataFrame,

@@ -4,7 +4,10 @@
 import streamlit as st
 
 from scenarios import get_scenario_names, get_scenario
+from panel_a.model_a import render as render_panel_a
 from panel_b.model_b import render as render_panel_b
+from panel_c.model_c import render as render_panel_c
+from panel_d.model_d import render as render_panel_d
 
 st.set_page_config(
     page_title="Rates, Risk & Returns",
@@ -84,7 +87,30 @@ if scenario_name == "Custom":
 st.session_state["scenario"] = scenario
 
 
-st.write("Selected scenario data:", scenario)
+# Four-panel dashboard layout
 
-# Display Panel B.
-render_panel_b(scenario)
+st.divider()
+
+top_left, top_right = st.columns(2, gap="large")
+
+with top_left:
+    with st.container(border=True):
+        st.subheader("01 · Global Economy")
+        render_panel_a(scenario)
+
+with top_right:
+    with st.container(border=True):
+        st.subheader("02 · Interest Rate Sensitivity")
+        render_panel_b(scenario)
+
+bottom_left, bottom_right = st.columns(2, gap="large")
+
+with bottom_left:
+    with st.container(border=True):
+        st.subheader("03 · Portfolio Optimiser")
+        render_panel_c(scenario)
+
+with bottom_right:
+    with st.container(border=True):
+        st.subheader("04 · Savings Simulation")
+        render_panel_d(scenario)
