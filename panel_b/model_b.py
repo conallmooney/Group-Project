@@ -1,20 +1,79 @@
 
 """Panel B: Interest-rate sensitivity analysis."""
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
+
 import style
 
-from market_data_b import (
-    load_etf_prices,
+from data import (
+    load_prices,
     load_treasury_yields,
     prepare_regression_data,
 )
-from interest_rate_model_b import (
-    calculate_sensitivities,
-    calculate_scenario_impacts,
-)
+
+
+def calculate_sensitivities(
+    regression_data: pd.DataFrame,
+) -> pd.DataFrame:
+    """Estimate ETF sensitivity to Treasury yield changes."""
+
+    results = []
+    x_column = "yield_change"
+
+    for ticker in regression_data.columns:
+        if ticker == x_column:
+            continue
+
+        clean_data = regression_data[
+            [ticker, x_column]
+        ].dropna()
+
+        if len(clean_data) < 30:
+            continue
+
+        x = clean_data[x_column].to_numpy()
+        y = clean_data[ticker].to_numpy()
+
+        beta, alpha = np.polyfit(x, y, 1)
+        predicted = alpha + beta * x
+
+        ss_res = np.sum((y - predicted) ** 2)
+        ss_tot = np.sum((y - np.mean(y)) ** 2)
+
+        r_squared = (
+            1 - ss_res / ss_tot
+            if ss_tot > 0
+            else np.nan
+        )
+
+        results.append({
+            "ETF": ticker,
+            "Alpha": alpha,
+            "Beta": beta,
+            "R_squared": r_squared,
+            "Observations": len(clean_data),
+        })
+
+    return pd.DataFrame(results)
+
+
+def calculate_scenario_impacts(
+    sensitivities: pd.DataFrame,
+    shock_pp: float,
+) -> pd.DataFrame:
+    """Calculate illustrative ETF impacts under a rate scenario."""
+
+    impacts = sensitivities.copy()
+
+    impacts["Scenario_Impact"] = (
+        impacts["Beta"] * shock_pp
+    )
+
+    return impacts
+
 
 
 @st.cache_data(ttl=60 * 60 * 24)
@@ -24,7 +83,11 @@ def get_sensitivities(frequency: str, start_year: int):
     start_date = f"{start_year}-01-01"
     end_date = "2025-01-01"
 
-    prices = load_etf_prices(
+    prices = load_prices(
+        tickers=(
+            "SPY", "TLT", "GLD", "XLE",
+            "XLU", "QQQ", "IWM", "EFA",
+        ),
         start=start_date,
         end=end_date,
     )
@@ -48,11 +111,14 @@ def render(scenario: dict) -> None:
 
     st.caption("02 · WHO WINS WHEN RATES MOVE?")
 
-    # Synchronise the slider with the shared scenario.
-    if "panel_b_shock" not in st.session_state:
-        st.session_state["panel_b_shock"] = float(
-            scenario.get("shock_pp", 0.0)
-        )
+    # Keep the slider aligned with the global scenario.
+    scenario_shock = float(scenario.get("shock_pp", 0.0))
+
+    if (
+        "panel_b_shock" not in st.session_state
+        or st.session_state["panel_b_shock"] != scenario_shock
+    ):
+        st.session_state["panel_b_shock"] = scenario_shock
 
     def on_shock_change():
         shock_value = float(st.session_state["panel_b_shock"])
