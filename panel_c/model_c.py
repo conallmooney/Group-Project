@@ -262,6 +262,80 @@ def allocation_chart(allocation: pd.DataFrame) -> go.Figure:
     return fig
 
 
+def historical_backtest(
+    full_prices: pd.DataFrame,
+    tickers: list[str],
+    max_weight: float,
+) -> tuple[pd.DataFrame, pd.Series]:
+    """Fit weights in 2015–2021 and evaluate buy-and-hold results in 2022–2024."""
+    columns = list(dict.fromkeys(tickers + ["SPY", "TLT"]))
+    history = full_prices.loc[:, columns].sort_index().dropna()
+    training = history.loc["2015-01-01":"2021-12-31"]
+    testing = history.loc["2022-01-01":"2024-12-31"]
+
+    if len(training) < TRADING_DAYS or len(testing) < TRADING_DAYS:
+        raise ValueError(
+            "Insufficient shared history for the training or test period."
+        )
+
+    if (
+        training.index.min().year != 2015
+        or training.index.max().year != 2021
+        or testing.index.min().year != 2022
+        or testing.index.max().year != 2024
+    ):
+        raise ValueError(
+            "Shared prices must cover 2015–2021 and 2022–2024."
+        )
+
+    training_returns = training[tickers].pct_change(
+        fill_method=None
+    ).dropna()
+
+    fitted_weights = optimise_portfolio(
+        training_returns.mean() * TRADING_DAYS,
+        training_returns.cov() * TRADING_DAYS,
+        risk_free_rate=0.03,
+        max_weight=max_weight,
+    )
+
+    # Include the first test-day return using the final training close
+    evaluation = pd.concat([training.tail(1), testing])
+    relative_prices = evaluation / evaluation.iloc[0]
+
+    growth = pd.DataFrame({
+        "Optimised portfolio": relative_prices[tickers] @ fitted_weights,
+        "60/40 shares–bonds": (
+            0.6 * relative_prices["SPY"]
+            + 0.4 * relative_prices["TLT"]
+        ),
+        "SPY": relative_prices["SPY"],
+    })
+
+    allocation = pd.Series(
+        fitted_weights,
+        index=tickers,
+        name="Allocation",
+    )
+
+    return growth, allocation
+
+
+def backtest_summary(growth: pd.DataFrame) -> pd.DataFrame:
+    """Summarise realised performance over the historical test period."""
+    daily_returns = growth.pct_change(fill_method=None).dropna()
+    years = (growth.index[-1] - growth.index[0]).days / 365.25
+    drawdowns = growth / growth.cummax() - 1
+    total_growth = growth.iloc[-1] / growth.iloc[0]
+
+    return pd.DataFrame({
+        "Total return": total_growth - 1,
+        "Annualised compound return": total_growth ** (1 / years) - 1,
+        "Annual volatility": daily_returns.std() * np.sqrt(TRADING_DAYS),
+        "Maximum drawdown": drawdowns.min(),
+    })
+
+
 def render(scenario: dict | None = None) -> None:
     """Draw Panel 3 with equal-weight and optimised portfolio comparisons."""
 
@@ -310,11 +384,16 @@ def render(scenario: dict | None = None) -> None:
     )
 
     # --- Load the data ---
+    # Always include both benchmark assets for the historical backtest
+    download_tickers = tuple(dict.fromkeys(tickers + ["SPY", "TLT"]))
+
     try:
-        prices = load_prices(tuple(tickers))
+        full_prices = load_prices(download_tickers).sort_index()
     except Exception as error:
         st.error(f"ETF prices are unavailable: {error}")
         return
+
+    prices = full_prices.loc[:, tickers].copy()
 
     # Keep dates where every selected asset has a price
     prices = prices.dropna().sort_index()
@@ -576,6 +655,83 @@ def render(scenario: dict | None = None) -> None:
             "allocation limit. The star marks the maximum-Sharpe portfolio. "
             "All results use historical estimates."
         )
+
+    # --- Historical backtest ---
+    with st.expander("Historical backtest: 2022–2024"):
+        st.caption(
+            "Weights are fitted using 2015–2021 data only, with your "
+            "selected assets, allocation limit and a fixed 3% risk-free rate. "
+            "The portfolios are then held through 2022–2024."
+        )
+
+        try:
+            growth, backtest_allocation = historical_backtest(
+                full_prices,
+                tickers,
+                max_weight,
+            )
+        except ValueError as error:
+            st.warning(f"Historical backtest unavailable: {error}")
+        else:
+            fig = px.line(
+                growth * 100,
+                labels={
+                    "index": "Date",
+                    "value": "Value of initial US$100",
+                    "variable": "Portfolio",
+                },
+                color_discrete_map={
+                    "Optimised portfolio": "#0E6E8C",
+                    "60/40 shares–bonds": "#D99A1A",
+                    "SPY": "#5A6878",
+                },
+            )
+
+            fig.update_traces(
+                hovertemplate=(
+                    "%{x|%d %b %Y}<br>"
+                    "Value: US$%{y:.2f}<extra>%{fullData.name}</extra>"
+                )
+            )
+
+            fig.update_layout(
+                height=400,
+                xaxis_title="Date",
+                yaxis_title="Value of initial US$100",
+                legend=dict(
+                    title_text="",
+                    orientation="h",
+                    y=1.15,
+                    x=0,
+                ),
+            )
+
+            st.plotly_chart(fig, width="stretch", theme=None)
+
+            st.write("Realised performance during 2022–2024")
+            summary = backtest_summary(growth)
+
+            st.dataframe(
+                summary.style.format("{:.2%}"),
+            )
+
+            st.write("Optimised starting allocations fitted in 2015–2021")
+            st.dataframe(
+                backtest_allocation.to_frame().style.format({
+                    "Allocation": "{:.1%}",
+                }),
+            )
+
+            st.caption(
+                "All three portfolios start at US$100 at the final "
+                "available close of 2021. The benchmark starts with "
+                "60% SPY and 40% TLT. These are buy-and-hold comparisons: "
+                "weights drift and there is no periodic rebalancing. "
+                "Results use adjusted prices in USD and exclude trading "
+                "costs, taxes and currency conversion. This backtest uses "
+                "a fixed historical period, independently of the "
+                "estimation-window selector and scenario adjustments."
+            )
 
     # --- Check the downloaded prices ---
     st.write("Latest adjusted closing prices")
