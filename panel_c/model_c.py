@@ -428,6 +428,58 @@ def render(scenario: dict | None = None) -> None:
         "risk-free rate. Historical performance does not guarantee future results."
     )
 
+    # --- Custom portfolio comparison ---
+    custom_stats = None
+
+    with st.expander("Compare your own portfolio allocation"):
+        st.caption(
+            "Enter percentages totalling 100%. "
+            "The maximum-allocation slider applies to the optimiser only."
+        )
+
+        custom_percentages = []
+
+        for ticker in tickers:
+            percentage = st.number_input(
+                f"{ticker} allocation (%)",
+                min_value=0.0,
+                max_value=100.0,
+                value=0.0,
+                step=1.0,
+                key=f"p3_custom_{ticker}",
+            )
+            custom_percentages.append(percentage)
+
+        total = float(sum(custom_percentages))
+
+        if not np.isclose(total, 100.0, atol=1e-6, rtol=0):
+            st.info(
+                f"Your allocations currently total {total:.1f}%. "
+                "Adjust them to total 100%."
+            )
+        else:
+            custom_weights = np.array(custom_percentages) / 100
+
+            custom_stats = portfolio_stats(
+                custom_weights,
+                annual_returns,
+                annual_covariance,
+                risk_free_rate,
+            )
+
+            custom_return, custom_volatility, custom_sharpe = custom_stats
+
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Your estimated annual return", f"{custom_return:.2%}")
+            col2.metric("Your annual volatility", f"{custom_volatility:.2%}")
+            col3.metric("Your Sharpe ratio", f"{custom_sharpe:.2f}")
+
+            st.caption(
+                "Uses the same estimation window and risk-free rate "
+                "as the other portfolios. Panel D continues to receive "
+                "the optimised portfolio."
+            )
+
     # --- Efficient frontier ---
     st.write("The trade-off between estimated return and risk")
 
@@ -484,6 +536,24 @@ def render(scenario: dict | None = None) -> None:
                 "Estimated annual return: %{y:.2%}<extra></extra>"
             ),
         ))
+
+        if custom_stats is not None:
+            fig.add_trace(go.Scatter(
+                x=[custom_stats[1]],
+                y=[custom_stats[0]],
+                mode="markers",
+                name="Your allocation",
+                marker=dict(
+                    symbol="diamond",
+                    size=12,
+                    color="#8E5AC8",
+                ),
+                hovertemplate=(
+                    "Your allocation<br>"
+                    "Annual volatility: %{x:.2%}<br>"
+                    "Estimated annual return: %{y:.2%}<extra></extra>"
+                ),
+            ))
 
         fig.update_layout(
             height=440,
