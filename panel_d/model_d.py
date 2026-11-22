@@ -372,7 +372,7 @@ def render(scenario: dict) -> None:
         scenario (dict): The chosen scenario, with keys "name", "shock_pp",
             "inflation" and "rf".
     """
-    st.subheader("Panel 4 -  What could it become?")
+    st.subheader("What could it become?")
     headline_slot = st.empty()
 
     # --- Default inflation: the scenario's if it has one, else Ireland's latest real rate ---
