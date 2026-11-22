@@ -52,6 +52,25 @@ play / year slider, "Explain a year".
 or returns incomplete data, the panel uses the saved snapshot in `data/fallback/world_bank.csv`
 and says so on screen. Refresh the snapshot with `python data.py`.
 
+## Panel 2: Who wins when rates move? (Eoin Cunningham)
+
+**Question:** how do changes in interest rates affect different types of investments, and which ETFs are most sensitive?
+
+A bar chart comparing the historical interest-rate sensitivity of eight ETFs (SPY, TLT, GLD, XLE, XLU, QQQ, IWM, EFA). Each sensitivity is estimated using a linear regression of ETF percentage returns against changes in the US 10-year Treasury yield, with the regression coefficient showing the estimated ETF return for a one-percentage-point rise in yields. A rate-shock slider applies these sensitivities to different interest-rate scenarios, showing which investments are expected to gain or lose. Regression results also include R² values to indicate how much of each ETF's historical return variation is explained by yield changes.
+
+**Controls:** data frequency (daily / weekly / monthly), regression start year (2015 / 2017 / 2019 / 2021), interest-rate shock slider (−3 to +3 percentage points), and shared economic scenario selector.
+
+**Files:** `panel_b/model_b.py` (panel), `market_data_b.py` (market data loaders), `interest_rate_model_b.py` (regression and scenario calculations), `scenarios.py` (shared economic scenarios), `style.py` (shared chart style).
+
+### Data source
+
+| Provider | Indicators | Access | Frequency | Licence |
+| --- | --- | --- | --- | --- |
+| [Yahoo Finance](https://finance.yahoo.com) via `yfinance` | Historical adjusted prices for SPY, TLT, GLD, XLE, XLU, QQQ, IWM, EFA | Public, no key needed | Daily prices, aggregated to weekly or monthly | Yahoo Finance terms of use |
+| [Federal Reserve Economic Data (FRED)](https://fred.stlouisfed.org/series/DGS10) | US 10-year Treasury constant-maturity yield (`DGS10`) | FRED API key required | Daily observations, aggregated to weekly or monthly | See FRED series terms |
+
+**Reliability:** market data downloads are cached using Streamlit. ETF prices and Treasury yields are aligned by date before regression, and observations with missing values are excluded. Results are recalculated when the selected frequency or start year changes. The estimated sensitivities are also shared with Panel 3 for portfolio analysis. Historical relationships are not guaranteed to hold in future scenarios.
+
 ## Panel 4: What could it become? (Hannah McElligott)
 
 **Question:** how much could someone saving every month end up with, in today's euros?
