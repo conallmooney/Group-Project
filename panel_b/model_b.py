@@ -1,8 +1,9 @@
 
 """Panel B: Interest-rate sensitivity analysis."""
 
+import pandas as pd
 import streamlit as st
-import plotly.express as px
+import plotly.graph_objects as go
 import style
 
 from market_data_b import (
@@ -16,150 +17,69 @@ from interest_rate_model_b import (
 )
 
 
+@st.cache_data(ttl=60 * 60 * 24)
+def get_sensitivities(frequency: str, start_year: int):
+    """Estimate ETF sensitivities using historical market data."""
+
+    start_date = f"{start_year}-01-01"
+    end_date = "2025-01-01"
+
+    prices = load_etf_prices(
+        start=start_date,
+        end=end_date,
+    )
+
+    yields = load_treasury_yields(
+        start=start_date,
+        end=end_date,
+    )
+
+    regression_data = prepare_regression_data(
+        prices,
+        yields,
+        frequency=frequency,
+    )
+
+    return calculate_sensitivities(regression_data)
+
+
 def render(scenario: dict) -> None:
-    """Display Panel B using the selected economic scenario."""
+    """Render the compact interest-rate sensitivity panel."""
 
-    st.subheader("Interest Rate Sensitivity")
+    st.caption("02 · WHO WINS WHEN RATES MOVE?")
 
-    frequency = st.selectbox(
-        "Choose data frequency:",
-        ["Monthly", "Weekly", "Daily"],
-    )
-
-
-    start_year = st.selectbox(
-        "Regression start year:",
-        [2015, 2017, 2019, 2021],
-        index=0,
-    )
-
-
-    
-    if st.button("Calculate Sensitivities"):
-        with st.spinner("Loading market data and calculating sensitivities..."):
-            
-            start_date = f"{start_year}-01-01"
-            end_date = "2025-01-01"
-
-            prices = load_etf_prices(
-                start=start_date,
-                end=end_date,
-            )
-
-            yields = load_treasury_yields(
-                start=start_date,
-                end=end_date,
-            )
-
-
-            regression_data = prepare_regression_data(
-                prices,
-                yields,
-                frequency=frequency,
-            )
-
-            sensitivities = calculate_sensitivities(regression_data)
-
-            st.session_state["panel_b_sensitivities"] = sensitivities
-            st.session_state["panel_b_frequency"] = frequency
-            st.session_state["panel_b_start_year"] = start_year
-
-
-            # Share ETF interest-rate betas with Panel C.
-            st.session_state["asset_betas"] = dict(
-                zip(sensitivities["ETF"], sensitivities["Beta"])
-            )
-
-
-    
-    if (
-        "panel_b_sensitivities" in st.session_state
-        and st.session_state.get("panel_b_frequency") == frequency
-        and st.session_state.get("panel_b_start_year") == start_year
-    ):
-
-        sensitivities = st.session_state["panel_b_sensitivities"]
-
-
-        st.subheader("Regression Results")
-        st.dataframe(sensitivities, use_container_width=True)
-
-        chart_data = sensitivities.sort_values("Beta")
-        
-        chart_data = chart_data.copy()
-
-        chart_data["Direction"] = chart_data["Beta"].apply(
-            lambda beta: "Positive" if beta >= 0 else "Negative"
-        )
-        most_negative = chart_data.iloc[0]
-        most_positive = chart_data.iloc[-1]
-
-        st.markdown(
-            f"**{most_negative['ETF']} has the strongest negative "
-            f"interest-rate sensitivity ({most_negative['Beta']:.2f}).**"
+    # Synchronise the slider with the shared scenario.
+    if "panel_b_shock" not in st.session_state:
+        st.session_state["panel_b_shock"] = float(
+            scenario.get("shock_pp", 0.0)
         )
 
-        fig = px.bar(
-            chart_data,
-            x="ETF",
-            y="Beta",
-            color="Direction",
-            color_discrete_map={
-                "Positive": style.POSITIVE,
-                "Negative": style.NEGATIVE,
-            },
-            hover_data={
-                "Beta": ":.2f",
-                "R_squared": ":.3f",
-                "Observations": True,
-            },
-            title="ETF Sensitivity to a 1 Percentage-Point Rise in Treasury Yields",
-            labels={
-                "ETF": "ETF",
-                "Beta": "Estimated ETF Return (%)",
-            },
+    def on_shock_change():
+        shock_value = float(st.session_state["panel_b_shock"])
+
+        st.session_state["scenario_selector"] = "Custom"
+        st.session_state["custom_shock"] = shock_value
+
+    # All three controls on one row.
+    col1, col2, col3 = st.columns(3, gap="small")
+
+    with col1:
+        frequency = st.selectbox(
+            "Frequency",
+            ["Monthly", "Weekly", "Daily"],
+            key="panel_b_frequency_selector",
         )
 
-        fig.update_layout(showlegend=False)
-
-        st.plotly_chart(fig, use_container_width=True)
-
-        st.caption(
-            "Source: Yahoo Finance ETF prices and FRED DGS10 Treasury yields. "
-            "Sensitivities are historical regression estimates, not guaranteed forecasts."
+    with col2:
+        start_year = st.selectbox(
+            "Estimated from",
+            [2015, 2017, 2019, 2021],
+            key="panel_b_start_year_selector",
         )
 
-        st.caption(
-            f"Analysis period: {start_year}–2024 | "
-            f"Frequency: {frequency} | "
-            f"Most positive sensitivity: {most_positive['ETF']} "
-            f"({most_positive['Beta']:+.2f})"
-        )
-
-        st.caption(
-            "R² measures how much of an ETF's historical return variation "
-            "is explained by Treasury yield changes. A low R² suggests "
-            "that other factors are important."
-        )
-
-        st.subheader("Interest-Rate Shock Simulator")
-
-        
-        def on_shock_change():
-            """Keep the Custom scenario and slider in sync."""
-            shock_value = float(st.session_state["panel_b_shock"])
-
-            st.session_state["scenario_selector"] = "Custom"
-            st.session_state["custom_shock"] = shock_value
-
-        # Initialise the slider if no value exists yet.
-        if "panel_b_shock" not in st.session_state:
-            st.session_state["panel_b_shock"] = float(
-                scenario["shock_pp"]
-            )
-
+    with col3:
         shock = st.slider(
-            "Change in Treasury yields (percentage points)",
+            "Yield change (pp)",
             min_value=-3.0,
             max_value=3.0,
             step=0.25,
@@ -167,49 +87,210 @@ def render(scenario: dict) -> None:
             on_change=on_shock_change,
         )
 
+    # Calculate automatically, with caching.
+    try:
+        with st.spinner("Estimating ETF sensitivities..."):
+            sensitivities = get_sensitivities(
+                frequency,
+                start_year,
+            )
 
+    except Exception as exc:
+        st.error("Unable to calculate ETF sensitivities.")
+        st.caption(str(exc))
+        return
 
-        impacts = calculate_scenario_impacts(
-            sensitivities,
-            shock,
+    if sensitivities.empty:
+        st.warning("No regression results available.")
+        return
+
+    # Share betas with Panel C.
+    st.session_state["asset_betas"] = dict(
+        zip(
+            sensitivities["ETF"],
+            sensitivities["Beta"],
+        )
+    )
+
+    impacts = calculate_scenario_impacts(
+        sensitivities,
+        shock,
+    ).copy()
+
+    # Ensure R-squared is available for chart styling.
+    if "R_squared" not in impacts.columns:
+        impacts = impacts.merge(
+            sensitivities[["ETF", "R_squared"]],
+            on="ETF",
+            how="left",
+        )
+
+    impacts = impacts.sort_values("Scenario_Impact")
+
+    worst = impacts.iloc[0]
+    best = impacts.iloc[-1]
+
+    # Dynamic, sign-aware headline.
+    if shock == 0:
+        headline = "No interest-rate change selected"
+
+    elif worst["Scenario_Impact"] < 0 and best["Scenario_Impact"] > 0:
+        direction = "Rising" if shock > 0 else "Falling"
+
+        headline = (
+            f"{direction} yields: "
+            f"{best['ETF']} gains most, "
+            f"{worst['ETF']} falls most"
+        )
+
+    else:
+        direction = "Rising" if shock > 0 else "Falling"
+
+        headline = (
+            f"{direction} yields: "
+            f"{best['ETF']} performs best, "
+            f"{worst['ETF']} performs worst"
+        )
+
+    st.markdown(f"**{headline}**")
+
+    # Green = gain, red = loss.
+    # Low R² bars use lighter colours to indicate weak explanatory power.
+
+    colors = [
+    style.POSITIVE if impact >= 0 else style.NEGATIVE
+    for impact in impacts["Scenario_Impact"]
+]
+
+    opacities = [
+    0.35 if pd.notna(r2) and r2 < 0.10 else 1.0
+    for r2 in impacts["R_squared"]
+]
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Bar(
+            x=impacts["Scenario_Impact"],
+            y=impacts["ETF"],
+            orientation="h",
+            marker=dict(
+            color=colors,
+            opacity=opacities,
+            ),
+            text=[
+                f"{value:+.1f}%"
+                for value in impacts["Scenario_Impact"]
+            ],
+            textposition="outside",
+            cliponaxis=False,
+            customdata=impacts[
+                ["Beta", "R_squared"]
+            ].to_numpy(),
+            hovertemplate=(
+                "<b>%{y}</b><br>"
+                "Estimated impact: %{x:+.2f}%<br>"
+                "Beta: %{customdata[0]:+.2f}<br>"
+                "R²: %{customdata[1]:.3f}"
+                "<extra></extra>"
+            ),
+        )
+    )
+
+    fig.update_layout(
+        height=320,
+        margin=dict(l=10, r=50, t=10, b=35),
+        showlegend=False,
+        bargap=0.20,
+        xaxis_title="Estimated ETF return (%)",
+        yaxis_title=None,
+        font=dict(size=11),
+    )
+
+    fig.update_xaxes(
+        zeroline=True,
+        zerolinecolor=style.MUTED,
+        showgrid=True,
+        gridcolor=style.GRID,
+    )
+
+    fig.update_yaxes(
+        autorange=True,
+        showgrid=False,
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={"displayModeBar": False},
+    )
+
+    # One concise scenario takeaway.
+    if shock == 0:
+        st.info(
+            "Move the yield slider to estimate "
+            "how each ETF responds."
+        )
+    else:
+        st.info(
+            f"For a {shock:+.2f} pp change in the "
+            f"10-year Treasury yield, the model estimates "
+            f"**{best['ETF']} at "
+            f"{best['Scenario_Impact']:+.1f}%** "
+            f"and **{worst['ETF']} at "
+            f"{worst['Scenario_Impact']:+.1f}%**."
+        )
+
+    # One combined table, hidden by default.
+    with st.expander("Regression details"):
+
+        details = sensitivities.merge(
+            impacts[["ETF", "Scenario_Impact"]],
+            on="ETF",
+            how="left",
+        )
+
+        details = details.rename(
+            columns={
+                "Alpha": "Alpha (%)",
+                "Beta": "Move per +1 pp (%)",
+                "R_squared": "R²",
+                "Observations": "Observations",
+                "Scenario_Impact": "Scenario impact (%)",
+            }
         )
 
         st.dataframe(
-            impacts[["ETF", "Beta", "Scenario_Impact"]],
+            details,
             use_container_width=True,
-        )
-        
-        impacts = impacts.copy()
-
-        impacts["Direction"] = impacts["Scenario_Impact"].apply(
-            lambda impact: "Positive" if impact >= 0 else "Negative"
-        )
-
-        impact_chart = px.bar(
-            impacts.sort_values("Scenario_Impact"),
-            x="ETF",
-            y="Scenario_Impact",
-            color="Direction",
-            color_discrete_map={
-                "Positive": style.POSITIVE,
-                "Negative": style.NEGATIVE,
+            hide_index=True,
+            column_config={
+                "Alpha (%)": st.column_config.NumberColumn(
+                    format="%.2f"
+                ),
+                "Move per +1 pp (%)": st.column_config.NumberColumn(
+                    format="%+.2f"
+                ),
+                "R²": st.column_config.NumberColumn(
+                    format="%.3f"
+                ),
+                "Scenario impact (%)": st.column_config.NumberColumn(
+                    format="%+.2f"
+                ),
             },
-            title=f"Estimated ETF Impact of a {shock:+.2f} pp Yield Change",
-            labels={
-                "ETF": "ETF",
-                "Scenario_Impact": "Estimated ETF Return (%)",
-            },
-        )
-
-        impact_chart.update_layout(showlegend=False)
-
-        st.plotly_chart(
-            impact_chart,
-            use_container_width=True,
         )
 
         st.caption(
-            "Scenario impacts are linear extrapolations of historical "
-            "regression sensitivities, not guaranteed forecasts."
+            "Beta measures the estimated ETF return (%) "
+            "associated with a +1 percentage-point yield "
+            "change. R² measures the proportion of return "
+            "variation explained by the regression."
         )
 
+    st.caption(
+        f"Source: Yahoo Finance ETF prices; FRED DGS10. "
+        f"{frequency} data, {start_year}–2024. "
+        "Faded bars: R² below 0.10, indicating weak "
+        "explanatory power. Linear historical estimates, "
+        "not forecasts."
+    )
