@@ -388,22 +388,22 @@ def render(scenario: dict) -> None:
     # --- Controls ---
     # Row 1: the three sliders
     c1, c2, c3 = st.columns(3)
-    monthly = c1.slider("Monthly (€)", 0, 1000, 150, step=25)
-    years = c2.slider("Years", 5, 40, 30)
+    monthly = c1.slider("Monthly (€)", 0, 1000, 150, step=25, key="p4_monthly")
+    years = c2.slider("Years", 5, 40, 30, key="p4_years")
     inflation = c3.slider("Inflation (% a year)", 0.0, 8.0,
-                          round(default_inflation * 100, 1), step=0.1) / 100
+                          round(default_inflation * 100, 1), step=0.1, key="p4_inflation") / 100
 
     # Row 2: the two amounts
     c4, c5 = st.columns(2)
     start = c4.number_input("Starting amount (€)", min_value=0, max_value=100000,
-                            value=1000, step=500)
+                            value=1000, step=500, key="p4_start")
     goal = c5.number_input("Savings goal, today's € (0 = none)", min_value=0,
-                           max_value=10000000, value=50000, step=5000)
+                           max_value=10000000, value=50000, step=5000, key="p4_goal")
     
     with st.expander("Risk quiz: answer 3 questions to set your risk profile"):
         scores = []
         for i, q in enumerate(QUIZ):
-            answer = st.radio(q["question"], q["answers"], index=1, key=f"quiz_{i}")
+            answer = st.radio(q["question"], q["answers"], index=1, key=f"p4_quiz_{i}")
             scores.append(q["answers"].index(answer))
 
     profile = quiz_to_profile(scores)
@@ -417,7 +417,7 @@ def render(scenario: dict) -> None:
                f"{annual_return:.1%} average return and {volatility:.0%} volatility a year.")
 
     # --- Panel 3 link: use C's optimal portfolio if it exists ---
-    source = st.radio("Use returns from", ["My risk quiz", "My Panel 3 portfolio"], horizontal=True)
+    source = st.radio("Use returns from", ["My risk quiz", "My Panel 3 portfolio"], horizontal=True, key="p4_source")
     p3 = st.session_state.get("p3_result")
     use_p3 = source == "My Panel 3 portfolio" and p3 is not None
 
@@ -441,7 +441,7 @@ def render(scenario: dict) -> None:
                    f"reflect any scenario adjustment Panel 3 makes to expected returns.")
 
     method = st.radio("Simulation method",
-                      ["Real past months (bootstrap)", "Bell curve"], horizontal=True)
+                      ["Real past months (bootstrap)", "Bell curve"], horizontal=True, key="p4_method")
 
     # --- Simulation ---
     if method == "Real past months (bootstrap)":
@@ -514,7 +514,7 @@ def render(scenario: dict) -> None:
         "good_case_todays_eur": fan[95][::12].round(0).astype(int),
     })
     st.download_button("Download my projection (CSV)", table.to_csv(index=False),
-                       file_name="my_projection.csv", mime="text/csv")
+                       file_name="my_projection.csv", mime="text/csv", key="p4_download")
 
 if __name__ == "__main__":
     render({"name": "Placeholder", "shock_pp": 0.0, "inflation": None, "rf": 0.04})
