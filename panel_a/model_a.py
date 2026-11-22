@@ -1,4 +1,8 @@
-"""Panel 1: The global shock. Animated bubble chart with a spinning-globe view of the same data."""
+"""Panel 1: The global shock. Animated bubble chart with a spinning-globe view of the same data.
+
+Author: Ciara Feeney (Person A, Panel 1 owner)
+Data: World Bank World Development Indicators, loaded through data.py
+"""
 import sys
 from pathlib import Path
 
@@ -6,6 +10,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+from scipy import stats
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))  # find data.py and style.py
 from data import load_world_bank
@@ -25,6 +30,8 @@ EVENTS = {
 
 # Dropdown label -> column in the data
 Y_OPTIONS = {"GDP growth (%)": "gdp_growth", "Unemployment (%)": "unemployment"}
+# Column -> name used inside sentences
+Y_NAMES = {"gdp_growth": "GDP growth", "unemployment": "unemployment"}
 
 # Axis ranges (kept here so the off-chart check uses the same numbers)
 X_RANGE = [-5, 20]
@@ -45,7 +52,31 @@ def complete_years(df: pd.DataFrame, share: float = 0.8) -> pd.DataFrame:
     return df[df["year"].isin(good_years)]
 
 
-def bubble_chart(plot_df: pd.DataFrame, y_col: str, y_label: str) -> go.Figure :
+def year_summary(df: pd.DataFrame, year: int) -> dict:
+    """Summary numbers for one year: median inflation, % of countries above 5%
+    inflation, and how many economies shrank."""
+    d = df[df["year"] == year]
+    return {
+        "median": d["inflation"].median(),
+        "share_high": (d["inflation"] > 5).mean() * 100,
+        "shrinking": int((d["gdp_growth"] < 0).sum()),
+    }
+
+
+def correlation_note(d: pd.DataFrame, y_col: str) -> str:
+    """Spearman rank correlation between inflation and the y variable in one year,
+    with its p-value. Spearman is used because a few hyperinflation outliers
+    would dominate an ordinary (Pearson) correlation."""
+    pair = d[["inflation", y_col]].dropna()
+    if len(pair) < 10:
+        return "Not enough countries this year for a reliable correlation."
+    rho, p = stats.spearmanr(pair["inflation"], pair[y_col])
+    verdict = "statistically significant" if p < 0.05 else "not statistically significant"
+    return (f"Across {len(pair)} countries, the rank correlation between inflation and "
+            f"{Y_NAMES[y_col]} is ρ = {rho:.2f} ({verdict}, p = {p:.3f}).")
+
+
+def bubble_chart(plot_df: pd.DataFrame, y_col: str, y_label: str) -> go.Figure:
     """Gapminder-style animated bubble chart: inflation vs growth or unemployment.
     Bubble size = GDP in US dollars."""
     fig = px.scatter(
@@ -63,7 +94,7 @@ def bubble_chart(plot_df: pd.DataFrame, y_col: str, y_label: str) -> go.Figure :
     return fig
 
 
-def globe_chart(plot_df: pd.DataFrame) -> go.Figure :
+def globe_chart(plot_df: pd.DataFrame) -> go.Figure:
     """Spinning 3D globe with each country coloured by its inflation rate."""
     fig = px.choropleth(
         plot_df, locations="economy", color="inflation", hover_name="name",
@@ -83,17 +114,22 @@ def globe_chart(plot_df: pd.DataFrame) -> go.Figure :
 def render(scenario: dict | None = None) -> None:
     """Draw Panel 1. It shows history, so it doesn't use the scenario."""
     st.subheader("Inflation hit almost every economy at once in 2022")
-    df = load_world_bank()
+    df, data_status = load_world_bank()
 
     # --- Controls ---
-    view = st.radio("View", ["Bubbles", "Globe"], horizontal=True)
+    view = st.radio("View", ["Bubbles", "Globe"], horizontal=True,
+                    help="Bubbles compares countries; the globe shows where inflation was.")
     col1, col2, col3 = st.columns(3)
     y_label = col1.selectbox("Y-axis (bubbles view)", list(Y_OPTIONS),
-                             disabled=view != "Bubbles")
+                             disabled=view != "Bubbles",
+                             help="Compare inflation with growth, or with unemployment "
+                                  "(a Phillips-curve view).")
     all_regions = sorted(df["region"].dropna().unique())
-    regions = col2.multiselect("Regions", all_regions, default=all_regions)
+    regions = col2.multiselect("Regions", all_regions, default=all_regions,
+                               help="Untick regions to focus on the others.")
     names = sorted(df["name"].unique())
-    highlight = col3.selectbox("Highlight", names, index=names.index("Ireland"))
+    highlight = col3.selectbox("Highlight", names, index=names.index("Ireland"),
+                               help="The chosen country is labelled as the animation plays.")
 
     # --- Filter the data for the chosen view ---
     y_col = Y_OPTIONS[y_label]
@@ -122,14 +158,31 @@ def render(scenario: dict | None = None) -> None:
     # --- Explain a year ---
     years = sorted(plot_df["year"].unique())
     year = st.select_slider("Explain a year", options=years,
-                            value=2022 if 2022 in years else years[-1])
+                            value=2022 if 2022 in years else years[-1],
+                            help="The play button runs in your browser, so pick a year "
+                                 "here to see its numbers.")
     that_year = plot_df[plot_df["year"] == year]
-    high = (that_year["inflation"] > 5).sum()
     event = EVENTS.get(year, "No major event noted")
-    st.markdown(f"**{year}: {event}.** {high} of {len(that_year)} "
-                f"countries shown had inflation above 5%.")
+    st.markdown(f"**{year}: {event}.**")
+
+    # Summary metrics, compared with the year before
+    now = year_summary(plot_df, year)
+    before = year_summary(plot_df, year - 1) if (year - 1) in years else None
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Median inflation", f"{now['median']:.1f}%",
+              f"{now['median'] - before['median']:+.1f} pts" if before else None,
+              delta_color="inverse")
+    m2.metric("Countries above 5% inflation", f"{now['share_high']:.0f}%",
+              f"{now['share_high'] - before['share_high']:+.0f} pts" if before else None,
+              delta_color="inverse")
+    m3.metric("Economies shrinking", now["shrinking"],
+              now["shrinking"] - before["shrinking"] if before else None,
+              delta_color="inverse")
 
     if view == "Bubbles":
+        # Is inflation actually related to growth/unemployment this year?
+        st.caption(correlation_note(that_year, y_col))
+
         # A reference point for bubble size: the largest economy that year
         biggest = that_year.loc[that_year["gdp_usd"].idxmax()]
         st.caption(f"Largest bubble in {year}: {biggest['name']} "
@@ -150,6 +203,11 @@ def render(scenario: dict | None = None) -> None:
         with st.expander("Why does Ireland's GDP jump around?"):
             st.write(IRELAND_NOTE)
 
+    # Where the data came from, live or backup
+    if data_status.startswith("Live"):
+        st.caption(data_status)
+    else:
+        st.warning(data_status)
     st.caption("Source: World Bank World Development Indicators "
                "(FP.CPI.TOTL.ZG, NY.GDP.MKTP.KD.ZG, SL.UEM.TOTL.ZS, NY.GDP.MKTP.CD).")
 
