@@ -298,6 +298,13 @@ def render(scenario: dict | None = None) -> None:
         )
         return
 
+    lookback = st.selectbox(
+        "Historical estimation window",
+        options=["All available", "Last 3 years", "Last 5 years", "Last 10 years"],
+        key="p3_lookback",
+        help="Choose how much price history is used to estimate returns and risk.",
+    )
+
     # --- Load the data ---
     try:
         prices = load_prices(tuple(tickers))
@@ -306,11 +313,26 @@ def render(scenario: dict | None = None) -> None:
         return
 
     # Keep dates where every selected asset has a price
-    prices = prices.dropna()
+    prices = prices.dropna().sort_index()
 
-    if len(prices) < 3:
-        st.info("Not enough shared price history.")
+    if prices.empty:
+        st.info("No shared price history is available for these assets.")
         return
+
+    # Measure the window backwards from the latest available observation
+    if lookback != "All available":
+        years_back = int(lookback.split()[1])
+        cutoff = prices.index.max() - pd.DateOffset(years=years_back)
+        prices = prices.loc[prices.index >= cutoff].copy()
+
+    if len(prices) < TRADING_DAYS:
+        st.info("At least 252 shared price observations are required.")
+        return
+
+    st.caption(
+        f"Estimation window: {lookback.lower()}, "
+        f"using {len(prices):,} shared daily price observations."
+    )
     
     # --- Calculate historical returns and risk ---
     daily_returns = prices.pct_change(fill_method=None).dropna()
