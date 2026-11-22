@@ -463,7 +463,9 @@ def render(scenario: dict | None = None) -> None:
     # Clear previous results so invalid selections cannot leave stale data
     st.session_state.pop("p3_result", None)
 
-    st.subheader("Build a portfolio across shares, bonds and gold")
+    st.caption("03 · BUILD THE BEST PORTFOLIO")
+    headline = st.empty()
+    headline.subheader("Build a portfolio across shares, bonds and gold")
 
     # --- Controls ---
     assets_col, limit_col, window_col = st.columns([2.2, 1, 1])
@@ -535,11 +537,6 @@ def render(scenario: dict | None = None) -> None:
         st.info("At least 252 shared price observations are required.")
         return
 
-    st.caption(
-        f"Estimation window: {lookback.lower()}, "
-        f"using {len(prices):,} shared daily price observations."
-    )
-    
     # --- Calculate historical returns and risk ---
     daily_returns = prices.pct_change(fill_method=None).dropna()
     annual_returns = daily_returns.mean() * TRADING_DAYS
@@ -647,15 +644,13 @@ def render(scenario: dict | None = None) -> None:
                     "Historical covariance is unchanged."
                 )
 
-    st.caption(scenario_note)
-
     expected_return, volatility, sharpe = portfolio_stats(
         weights,
         annual_returns,
         annual_covariance,
         risk_free_rate,
     )
-    
+
     # --- Optimised portfolio ---
     try:
         optimal_weights = optimise_portfolio(
@@ -699,6 +694,12 @@ def render(scenario: dict | None = None) -> None:
         "Allocation": optimal_weights,
     })
     top = allocation.loc[allocation["Allocation"].idxmax()]
+
+    # --- Headline based on the current result ---
+    headline.subheader(
+        f"Best mix: {optimal_return:.1%} estimated annual return "
+        f"at {optimal_volatility:.1%} volatility"
+    )
 
     # --- Compact portfolio comparison ---
     m1, m2, m3, m4 = st.columns(4)
@@ -771,36 +772,35 @@ def render(scenario: dict | None = None) -> None:
             "This table lists every selected asset."
         )
 
-    st.caption(
-        f"Allocations total 100%, with no short selling and a maximum "
-        f"of {max_weight:.0%} in any asset. "
-        f"Optimisation uses {risk_free_note}. "
-        "Any scenario adjustment to estimated asset returns "
-        "is described above. "
-        "Historical performance does not guarantee future results."
-    )
+    takeaway = st.empty()
 
     # --- Custom portfolio comparison ---
     custom_stats = None
 
-    with st.expander("Compare your own portfolio allocation"):
+    with st.expander("Try your own mix"):
         st.caption(
-            "Enter percentages totalling 100%. "
-            "The maximum-allocation slider applies to the optimiser only."
+            "Enter percentages totalling 100%. Your mix appears as a purple "
+            "diamond on the chart. The allocation limit applies to the "
+            "optimiser only; Panel D continues to receive the optimised mix."
         )
 
         custom_percentages = []
 
-        for ticker in tickers:
-            percentage = st.number_input(
-                f"{ticker} allocation (%)",
-                min_value=0.0,
-                max_value=100.0,
-                value=0.0,
-                step=1.0,
-                key=f"p3_custom_{ticker}",
-            )
-            custom_percentages.append(percentage)
+        # Up to four inputs per row keeps eight-asset selections readable
+        for start in range(0, len(tickers), 4):
+            row_tickers = tickers[start:start + 4]
+            input_columns = st.columns(len(row_tickers))
+
+            for column, ticker in zip(input_columns, row_tickers):
+                percentage = column.number_input(
+                    f"{ticker} (%)",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=0.0,
+                    step=1.0,
+                    key=f"p3_custom_{ticker}",
+                )
+                custom_percentages.append(percentage)
 
         total = float(sum(custom_percentages))
 
@@ -833,6 +833,7 @@ def render(scenario: dict | None = None) -> None:
             )
 
     # --- Efficient frontier ---
+    flat_note = ""
 
     try:
         frontier = efficient_frontier(
@@ -874,19 +875,38 @@ def render(scenario: dict | None = None) -> None:
             theme=None,
         )
 
-        frontier_box.caption(
-            "The frontier shows minimum estimated risk for each return "
-            "target under your allocation limit. Single assets represent "
-            "100% invested in one ETF, so they may exceed that limit. "
-            "The dashed line labelled Capital Market Line illustrates "
-            "risk-free cash combined "
-            "with the optimised portfolio and stops at the star: "
-            "borrowing is not included. Returns include any scenario "
-            "adjustment described above."
-        )
+        # Add a numerical explanation only when the curve clearly flattens
+        last = frontier.iloc[-1]
+        extra_return = float(last["Return"] - optimal_return)
+        extra_risk = float(last["Volatility"] - optimal_volatility)
+
+        if extra_risk > 0.02 and 0 <= extra_return < 0.01:
+            flat_note = (
+                f" At the frontier's highest-return point, volatility is "
+                f"{extra_risk * 100:.1f} percentage points higher for only "
+                f"{extra_return * 100:.1f} percentage points more "
+                "estimated annual return."
+            )
+
+    # --- Explain the current allocation without implying a forecast ---
+    sharpe_gap = optimal_sharpe - sharpe
+
+    if np.isclose(sharpe_gap, 0.0, atol=0.005, rtol=0):
+        comparison_note = "The two Sharpe ratios are approximately equal."
+    elif sharpe_gap > 0:
+        comparison_note = "The optimised mix has the higher estimated Sharpe ratio."
+    else:
+        comparison_note = "The equal-weight mix has the higher estimated Sharpe ratio."
+
+    takeaway.info(
+        f"The optimised mix puts {top['Allocation']:.1%} in "
+        f"{top['Asset']} ({ASSET_NAMES[top['Asset']]}). "
+        f"Estimated Sharpe: {optimal_sharpe:.2f}, compared with "
+        f"{sharpe:.2f} for equal weights. {comparison_note}{flat_note}"
+    )
 
     # --- Historical backtest ---
-    with st.expander("Historical backtest: 2022–2024"):
+    with st.expander("Historical backtest: fitted on 2015–21, tested on 2022–24"):
         st.caption(
             "Weights are fitted using 2015–2021 data only, with your "
             "selected assets, allocation limit and a fixed 3% risk-free rate. "
@@ -924,8 +944,9 @@ def render(scenario: dict | None = None) -> None:
             )
 
             fig.update_layout(
-                height=400,
-                xaxis_title="Date",
+                height=340,
+                margin=dict(l=20, r=20, t=55, b=30),
+                xaxis_title=None,
                 yaxis_title="Value of initial US$100",
                 legend=dict(
                     title_text="",
@@ -937,18 +958,35 @@ def render(scenario: dict | None = None) -> None:
 
             st.plotly_chart(fig, width="stretch", theme=None)
 
-            st.write("Realised performance during 2022–2024")
             summary = backtest_summary(growth)
+            fitted_return = float(summary.loc["Optimised portfolio", "Total return"])
+            benchmark_return = float(summary.loc["60/40 shares–bonds", "Total return"])
 
-            st.dataframe(
-                summary.style.format("{:.2%}"),
+            if np.isclose(fitted_return, benchmark_return, atol=1e-6, rtol=0):
+                verdict = "approximately matched"
+            elif fitted_return > benchmark_return:
+                verdict = "outperformed"
+            else:
+                verdict = "trailed"
+
+            st.markdown(
+                f"**The mix fitted on 2015–21 returned {fitted_return:+.1%} "
+                f"over 2022–24 and {verdict} the 60/40 benchmark "
+                f"({benchmark_return:+.1%}).**"
             )
 
-            st.write("Optimised starting allocations fitted in 2015–2021")
-            st.dataframe(
+            summary_column, weights_column = st.columns([2.2, 1])
+            summary_column.markdown("**Realised test-period performance**")
+            summary_column.dataframe(
+                summary.style.format("{:.2%}"),
+                width="stretch",
+            )
+            weights_column.markdown("**Weights fitted on 2015–21**")
+            weights_column.dataframe(
                 backtest_allocation.to_frame().style.format({
                     "Allocation": "{:.1%}",
                 }),
+                width="stretch",
             )
 
             st.caption(
@@ -962,24 +1000,53 @@ def render(scenario: dict | None = None) -> None:
                 "estimation-window selector and scenario adjustments."
             )
 
-    # --- Check the downloaded prices ---
-    st.write("Latest adjusted closing prices")
-    st.dataframe(prices.tail())
+    # --- Supporting information, kept out of the main chart area ---
+    with st.expander("Data, assumptions and latest prices"):
+        st.write("Latest adjusted closing prices (USD)")
+        st.dataframe(prices.tail(), width="stretch")
 
-    start_date = prices.index.min().strftime("%d %b %Y")
-    end_date = prices.index.max().strftime("%d %b %Y")
+        st.markdown("**Estimation basis**")
+        st.write(
+            f"Using {len(prices):,} shared daily price observations from "
+            f"{prices.index.min():%d %b %Y} to {prices.index.max():%d %b %Y}. "
+            "Estimated annual returns are mean daily returns × 252. "
+            "Annual covariance is daily covariance × 252; annual "
+            "volatility is the square root of portfolio variance. "
+            "Sharpe is estimated annual excess return divided by "
+            "annual volatility."
+        )
+        st.write(f"Calculations use {risk_free_note}. {scenario_note}")
 
+        st.markdown("**Portfolio constraints and chart**")
+        st.write(
+            f"Optimised weights sum to 100%, with no short selling and "
+            f"a maximum of {max_weight:.0%} in one asset. The frontier "
+            "shows minimum estimated risk for each return target under "
+            "that limit. Single-asset points represent 100% in one ETF "
+            "and may exceed the limit."
+        )
+        st.write(
+            "The dashed line labelled Capital Market Line illustrates "
+            "risk-free cash combined with this constrained maximum-Sharpe "
+            "mix. It stops at the star: borrowing is not included. It is "
+            "a cash-and-portfolio illustration rather than an estimate "
+            "of the economy-wide market portfolio."
+        )
+        st.write(
+            "Chart returns include any scenario adjustment described "
+            "above. The historical backtest uses its separate fixed "
+            "training and test periods and a fixed 3% risk-free rate. "
+            "Results are in USD and exclude transaction costs, taxes "
+            "and currency conversion. Historical estimates are not forecasts."
+        )
+
+    # --- Compact source line ---
     st.caption(
-        f"Price history available from {start_date} to {end_date}."
-    )
-    st.caption("Source: Yahoo Finance via yfinance. Adjusted closing prices.")
-
-    # --- Portfolio overview ---
-    st.write(f"You have selected {len(tickers)} assets.")
-
-    st.caption(
-        "The optimiser compares historical returns and risk "
-        "to estimate the highest-Sharpe mix under your allocation limit."
+        f"Source: Yahoo Finance via yfinance, adjusted prices in USD. "
+        f"{prices.index.min():%b %Y}–{prices.index.max():%b %Y}; "
+        f"{len(prices):,} shared daily observations. "
+        f"Calculations use {risk_free_note}. {scenario_note} "
+        "Estimates, not forecasts."
     )
 
 
