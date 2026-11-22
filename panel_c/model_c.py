@@ -425,8 +425,34 @@ def render(scenario: dict | None = None) -> None:
     # Equal allocation across the selected assets
     weights = np.full(len(tickers), 1 / len(tickers))
 
-    # Temporary assumption until Person B's scenario is connected
-    risk_free_rate = 0.03
+    # --- Scenario risk-free rate ---
+    active_scenario = (
+        scenario
+        if scenario is not None
+        else st.session_state.get("scenario")
+    )
+
+    if active_scenario is None:
+        risk_free_rate = 0.03
+        risk_free_note = "an assumed 3% annual risk-free rate"
+    else:
+        try:
+            # Person B supplies percentages: 4.75 means 4.75%
+            risk_free_rate = float(active_scenario["rf"]) / 100
+
+            if not np.isfinite(risk_free_rate):
+                raise ValueError(
+                    "The scenario risk-free rate must be a finite number."
+                )
+        except (KeyError, TypeError, ValueError) as error:
+            st.error(f"Invalid scenario risk-free rate: {error}")
+            return
+
+        scenario_name = str(active_scenario.get("name", "Custom"))
+        risk_free_note = (
+            f"a {risk_free_rate:.2%} annual risk-free rate "
+            f"from the '{scenario_name}' scenario"
+        )
 
     expected_return, volatility, sharpe = portfolio_stats(
         weights,
@@ -446,7 +472,8 @@ def render(scenario: dict | None = None) -> None:
     st.caption(
         f"Each selected asset receives {1 / len(tickers):.1%} of the portfolio. "
         "Historical arithmetic estimates using 252 trading days per year "
-        "and an assumed 3% annual risk-free rate. "
+        f"and {risk_free_note}. "
+        "Rate-shock adjustments to asset returns are not yet applied. "
         "These estimates are not forecasts."
     )
 
@@ -481,7 +508,10 @@ def render(scenario: dict | None = None) -> None:
         "risk_free_rate": float(risk_free_rate),
         "estimation_start": prices.index.min().strftime("%Y-%m-%d"),
         "estimation_end": prices.index.max().strftime("%Y-%m-%d"),
-        "basis": "Historical estimates; assumed 3% risk-free rate",
+        "basis": (
+            f"Historical return and risk estimates; {risk_free_note}; "
+            "rate-shock adjustments not yet applied"
+        ),
     }
 
     st.write("Maximum-Sharpe portfolio")
@@ -507,8 +537,9 @@ def render(scenario: dict | None = None) -> None:
     st.caption(
         f"Allocations total 100%, with no short selling and a maximum "
         f"of {max_weight:.0%} in any asset. "
-        "Optimisation uses historical estimates and an assumed 3% annual "
-        "risk-free rate. Historical performance does not guarantee future results."
+        f"Optimisation uses historical estimates and {risk_free_note}. "
+        "Rate-shock adjustments to asset returns are not yet applied. "
+        "Historical performance does not guarantee future results."
     )
 
     # --- Custom portfolio comparison ---
