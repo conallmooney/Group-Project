@@ -46,7 +46,7 @@ play / year slider, "Explain a year".
 | Provider | Indicators | Access | Frequency | Licence |
 | --- | --- | --- | --- | --- |
 | [World Bank World Development Indicators](https://data.worldbank.org) | Inflation `FP.CPI.TOTL.ZG`, GDP growth `NY.GDP.MKTP.KD.ZG`, unemployment `SL.UEM.TOTL.ZS`, GDP `NY.GDP.MKTP.CD` | Public API via `wbgapi`, no key needed | Annual | CC BY 4.0 |
-| [Yahoo Finance](https://finance.yahoo.com) via `yfinance` | Daily adjusted prices for SPY, TLT, GLD, XLE, XLU | Public, no key | Daily, from Jan 2015 | Yahoo Finance terms of use |
+| [Yahoo Finance](https://finance.yahoo.com) via `yfinance` | Daily adjusted prices for SPY, TLT, GLD, XLE, XLU, QQQ, IWM, EFA | Public, no key | Daily, from Jan 2015 | Yahoo Finance terms of use |
 
 **Reliability:** downloads are cached for a day. If the World Bank doesn't reply within 20 seconds,
 or returns incomplete data, the panel uses the saved snapshot in `data/fallback/world_bank.csv`

@@ -19,7 +19,7 @@ Everyone adds a row when they test something, especially when it breaks
 | 13 | 22 Nov | Hannah | all | Checked which panels app.py draws | All four panels shown | Only Panel 2 was imported and drawn; Panels 1, 3 and 4 missing | Fail | Eoin adding all four render() calls in order 1–4 |
 | 14 | 22 Nov | Hannah | 4 | Changed the scenario's inflation in the full dashboard | Panel 4 inflation slider updates | Slider stayed at 3.50 (Streamlit remembered the old slider value) | Fail → Fixed | Reset the slider whenever the scenario's inflation changes (st.session_state) |
 | 15 | 22 Nov | Hannah | 3→4 | Chose "My Panel 3 portfolio" with a portfolio built in Panel 3 | Panel 4 uses Panel 3's funds | Blue "hasn't built a portfolio" box still showed; the p3_result code was on Conall's branch but not merged into main | Fail → Fixed | Conall's panel_c PR merged into main; Panel 4 now uses Panel 3's portfolio |
-| 16 | 22 Nov | Hannah | 2 | Turned Wi-Fi off, reran the full dashboard and pressed Calculate Sensitivities | All panels work from saved data | Panels 1, 3 and 4 used saved data; Panel 2 crashed with ValueError: No ETF price data was downloaded | Fail | Eoin to use data.load_prices (has CSV fallback) or add his own fallback |
+| 16 | 22 Nov | Hannah | 2 | Turned Wi-Fi off, reran the full dashboard and pressed Calculate Sensitivities | All panels work from saved data | Panels 1, 3 and 4 used saved data; Panel 2 crashed with ValueError: No ETF price data was downloaded | Fail → Fixed |Eoin added saved-data fallbacks (ETF prices and Treasury yields); all four panels now work offline |
 | 17 | 22 Nov | Hannah | 2 | Known-answer tests for Panel 2's calculate_sensitivities (fake ETF that moves exactly -2 per 1-point yield change; and a 10-row history) | Beta -2, Alpha 0.5, R² 1; short history skipped | All matched; 23 tests pass | Pass | - |
 
 ## Full dashboard test plan (run after all panels are merged)
@@ -31,4 +31,4 @@ Everyone adds a row when they test something, especially when it breaks
 | Build a portfolio in Panel 3, pick "My Panel 3 portfolio" in Panel 4 | Blue box disappears, captions name Panel 3's funds | Fail at first (row 15); Pass after Conall's PR |
 | Look at each panel's heading | Each title appears only once | Fail at first (Panel 4 repeated "Panel 4"); Pass after shortening Panel 4's heading |
 | Panel 4: monthly 0, years 5, goal 0 | No crash, sensible numbers | Pass |
-| Turn Wi-Fi off and reload | Still works using the saved CSV backups | 1, 3 and 4 pass (saved data used); Panel 2 crashes when "Calculate Sensitivities" is pressed (row 16) |
+| Turn Wi-Fi off and reload | Still works using the saved CSV backups | Fail at first (row 16); Pass after Eoin's fix – all four panels work offline |
