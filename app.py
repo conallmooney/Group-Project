@@ -183,6 +183,12 @@ def safe_render(render, panel_name: str) -> None:
             st.exception(error)
 
 
+# Clear last run's shared results, so a panel that fails this time shows
+# "not available" in the overview instead of an old, stale result.
+# (Panel 3 already clears its own p3_result.)
+for shared_key in ("asset_betas", "p4_result"):
+    st.session_state.pop(shared_key, None)
+
 with tab_a:
     safe_render(render_panel_a, "Panel 1")
 with tab_b:
@@ -248,7 +254,10 @@ def overview_panel_2(card, shock: float) -> None:
         st.session_state.get("panel_b_frequency_selector", "Monthly"),
         st.session_state.get("panel_b_start_year_selector", 2015),
     )
-    shown_shock = shock if shock != 0 else 1.0
+    # With no rate change, show each ETF's sensitivity (its move per +1 pp)
+    # and say so clearly, rather than a blank chart of zeros
+    no_change = shock == 0
+    shown_shock = 1.0 if no_change else shock
     d = sensitivities.assign(Impact=sensitivities["Beta"] * shown_shock)
     d = d.sort_values("Impact")
     worst, best = d.iloc[0], d.iloc[-1]
@@ -263,14 +272,23 @@ def overview_panel_2(card, shock: float) -> None:
         textposition="outside", cliponaxis=False,
         hovertemplate="<b>%{y}</b>: %{x:+.1f}%<extra></extra>",
     ))
-    fig.update_xaxes(title="Estimated ETF return (%)")
-    lead = (f"{'Rising' if shock > 0 else 'Falling'} yields ({shock:+.2f} pp)"
-            if shock != 0 else "Per +1 pp rise in yields")
-    card_header(card, "2", "Who wins when rates move?",
-                f"{lead}: {worst['ETF']} falls most, {best['ETF']} gains most")
+    if no_change:
+        fig.update_xaxes(title="Move for a +1 pp rise in yields (%), for reference")
+        headline = ("No interest-rate change in this scenario. For reference, a +1 pp "
+                    f"rise would hit {worst['ETF']} most")
+    else:
+        fig.update_xaxes(title="Estimated ETF return (%)")
+        direction = "Rising" if shock > 0 else "Falling"
+        headline = (f"{direction} yields ({shock:+.2f} pp): "
+                    f"{worst['ETF']} falls most, {best['ETF']} gains most")
+    card_header(card, "2", "Who wins when rates move?", headline)
     card.plotly_chart(mini_layout(fig), width="stretch", theme=None,
                       config={"displayModeBar": False})
-    card.caption("Faded bars: yields explain little of that ETF's moves (R² below 0.10).")
+    note = "Faded bars: yields explain little of that ETF's moves (R² below 0.10)."
+    if no_change:
+        note = ("Bars show sensitivity (the move per +1 pp), not a prediction: "
+                "this scenario has no rate change. " + note)
+    card.caption(note)
     card_footer(card, "2 · Who wins when rates move?")
 
 
@@ -284,10 +302,18 @@ def overview_panel_3(card) -> None:
         return
 
     weights = pd.DataFrame({"Asset": best["tickers"], "Weight": best["weights"]})
-    weights = weights[weights["Weight"] >= 0.005]
+    # Group holdings under 0.5% into "Other", so the donut still adds to 100%
+    small = weights["Weight"] < 0.005
+    if small.any() and weights.loc[small, "Weight"].sum() > 0:
+        weights = pd.concat([
+            weights[~small],
+            pd.DataFrame({"Asset": ["Other"], "Weight": [weights.loc[small, "Weight"].sum()]}),
+        ], ignore_index=True)
+    else:
+        weights = weights[~small]
     fig = px.pie(
         weights, names="Asset", values="Weight", hole=0.6,
-        color="Asset", color_discrete_map=style.ASSET_COLOURS,
+        color="Asset", color_discrete_map={**style.ASSET_COLOURS, "Other": "#B0B7C0"},
     )
     fig.update_traces(textposition="inside", texttemplate="%{label}<br>%{percent:.0%}",
                       hovertemplate="%{label}: %{percent:.1%}<extra></extra>", sort=False)
@@ -382,11 +408,9 @@ def fill_headline_numbers() -> None:
         shown_shock = shock if shock != 0 else 1.0
         moves = {ticker: beta * shown_shock for ticker, beta in betas.items()}
         worst = min(moves, key=moves.get)
-        headline_slots[1].metric(
-            f"Biggest fall if yields move {shown_shock:+.2f} pp",
-            f"{worst} {moves[worst]:+.1f}%",
-            border=True,
-        )
+        label = (f"Biggest fall if yields move {shock:+.2f} pp" if shock != 0
+                 else "No rate change. Most rate-sensitive (per +1 pp)")
+        headline_slots[1].metric(label, f"{worst} {moves[worst]:+.1f}%", border=True)
     else:
         headline_slots[1].metric("Biggest fall when yields move", "–", border=True)
 
