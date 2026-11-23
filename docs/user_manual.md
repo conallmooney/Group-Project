@@ -4,7 +4,46 @@ TODO: how to open the dashboard
 ## 2. Choosing a scenario
 TODO: what the scenario switch does
 ## 3. Panel 1: The global shock
-TODO
+
+Shows where inflation struck around the world from 2000 to 2024, and how it related to growth, for around 190 countries. This panel shows history, so it does not change with the scenario.
+
+![Panel 1: bubble chart for 2022](img/p1_results.png)
+
+**Controls**
+
+- **View:** switch between **Bubbles** (compare countries) and **Globe** (see where inflation was).
+- **Y-axis (bubbles view):** compare inflation with **GDP growth** or with **unemployment**. It is greyed out on the globe, which shows inflation only.
+- **Regions:** untick regions to focus on the others.
+- **Highlight:** the country named on the chart as it plays (Ireland by default).
+- **▶ and the year slider** (under the chart): play the years 2000–2024, or drag to any year.
+- **Explain a year:** pick a year to see what happened and its numbers. The play button runs in your browser, so use this slider to update the numbers underneath.
+
+**How to read the bubble chart**
+
+- **Each bubble is a country.** Across: inflation (%). Up: GDP growth (%) or unemployment (%).
+- **Bubble size:** the size of the economy (GDP in US dollars). Hover over a bubble to see its GDP.
+- **Colour:** the country's region, shown in the legend.
+- Countries outside the chart's axes are listed underneath ("Off the chart in 2022: …"), so none are hidden.
+
+**How to read the globe**
+
+- Each country is coloured by its inflation rate, from **blue (low)** to **red (high)**. The scale is fixed at 0–15%, so a colour means the same in every year; anything above 15% shows as the darkest red.
+- **Drag the globe** to spin it. Press **▶** to watch inflation spread in 2021–22.
+
+**Explain a year**
+
+- **What happened:** one line on the key event, e.g. "2022: Russia invades Ukraine, energy prices spike, the Fed and ECB start raising rates."
+- **The three numbers:** median inflation, the share of countries above 5% inflation, and the number of economies shrinking. The small figure underneath is the change from the year before. **Red means worse** (more inflation, more economies shrinking) and green means better.
+- **Correlation:** a sentence giving the Spearman rank correlation (ρ) between inflation and growth (or unemployment) that year. Below 0 means countries with higher inflation tended to grow more slowly. "Statistically significant" means p is below 0.05.
+- **Largest bubble:** the biggest economy that year, as a guide to bubble sizes.
+- **"Why does Ireland's GDP jump around?"** (shown when Ireland is highlighted): explains why multinationals make Irish GDP swing, and why the CSO's GNI\* gives a truer picture.
+
+**Good to know**
+
+- A year is only shown if at least 80% of countries reported data, so the bubbles don't flicker as countries drop in and out.
+- Under the chart, a grey line says when the data was fetched live from the World Bank. If the World Bank is slow or unavailable, the panel uses a saved copy and shows a **yellow notice** with its date.
+
+All values are historical World Bank data, not forecasts.
 ## 4. Panel 2: Who wins when rates move?
 TODO
 ## 5. Panel 3: Build the best portfolio
