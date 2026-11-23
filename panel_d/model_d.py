@@ -508,6 +508,16 @@ def render(scenario: dict) -> None:
                f"forecasts, and ETF prices are in US dollars, so exchange-rate effects are ignored. "
                f"1,000 simulated futures using {method.lower()}.")
 
+    # --- Share the result with the dashboard's Overview tab and headline numbers ---
+    st.session_state["p4_result"] = {
+        "years": years,
+        "fan": {str(p): fan[p][::12].tolist() for p in (5, 25, 50, 75, 95)},
+        "paid": paid[::12].tolist(),
+        "median": float(np.median(finals)),
+        "goal": float(goal),
+        "chance": chance_of_reaching(finals, goal) if goal > 0 else None,
+        "inflation": float(inflation),
+    }
     # --- Download ---
     years_list = np.arange(years + 1)
     table = pd.DataFrame({
