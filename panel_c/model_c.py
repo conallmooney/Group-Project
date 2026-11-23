@@ -14,8 +14,10 @@ from data import load_prices
 from style import ASSET_COLOURS
 
 # Default assets used to build the portfolio
-DEFAULT_TICKERS = ["SPY", "TLT", "GLD", "XLE", "XLU"]
-AVAILABLE_TICKERS = DEFAULT_TICKERS + ["QQQ", "IWM", "EFA"]
+DEFAULT_TICKERS = [
+    "SPY", "TLT", "GLD", "XLE", "XLU", "QQQ", "IWM", "EFA",
+]
+AVAILABLE_TICKERS = DEFAULT_TICKERS.copy()
 TRADING_DAYS = 252
 
 # Ticker -> description shown to the user
@@ -264,18 +266,18 @@ def allocation_chart(allocation: pd.DataFrame) -> go.Figure:
         direction="clockwise",
     )
     fig.update_layout(
-        height=440,
+        height=480,
         margin=dict(l=10, r=10, t=30, b=30),
         showlegend=True,
         legend=dict(
             orientation="v", x=1.0, y=0.5,
             xanchor="left", yanchor="middle",
-            font=dict(size=12),
+            font=dict(size=13),
         ),
         annotations=[dict(
             text="Portfolio<br>allocation",
             x=0.5, y=0.5, showarrow=False,
-            font=dict(size=15, color="#5A6878"),
+            font=dict(size=16, color="#5A6878"),
         )],
     )
     return fig
@@ -324,7 +326,7 @@ def frontier_chart(
         name="Single assets",
         text=list(annual_returns.index),
         textposition="top center",
-        textfont=dict(size=11, color="#5A6878"),
+        textfont=dict(size=13, color="#5A6878"),
         marker=dict(
             size=10,
             color="white",
@@ -364,20 +366,35 @@ def frontier_chart(
             )
 
     fig.update_layout(
-        height=440,
-        xaxis_title="Annual volatility (risk)",
-        yaxis_title="Estimated annual return",
-        xaxis_tickformat=".0%",
-        yaxis_tickformat=".0%",
-        xaxis_rangemode="tozero",
+        height=480,
+        font=dict(size=13, color="#13202C"),
+        xaxis=dict(
+            title=dict(
+                text="Annual volatility (risk)",
+                font=dict(size=13),
+            ),
+            tickformat=".0%",
+            rangemode="tozero",
+            tickfont=dict(size=12),
+            automargin=True,
+        ),
+        yaxis=dict(
+            title=dict(
+                text="Estimated annual return",
+                font=dict(size=13),
+            ),
+            tickformat=".0%",
+            tickfont=dict(size=12),
+            automargin=True,
+        ),
         legend=dict(
             orientation="h",
             y=1.02,
             yanchor="bottom",
             x=0,
-            font=dict(size=11),
+            font=dict(size=12),
         ),
-        margin=dict(l=40, r=25, t=90, b=45),
+        margin=dict(l=55, r=20, t=55, b=55),
     )
 
     return fig
@@ -752,7 +769,7 @@ def render(scenario: dict | None = None) -> None:
         )
 
     # --- Main charts ---
-    frontier_column, allocation_column = st.columns([1.7, 1])
+    frontier_column, allocation_column = st.columns([1.35, 1])
     frontier_box = frontier_column.container(border=True)
     allocation_box = allocation_column.container(border=True)
 
@@ -762,7 +779,7 @@ def render(scenario: dict | None = None) -> None:
     fig = allocation_chart(allocation)
     allocation_box.plotly_chart(fig, width="stretch", theme=None)
 
-    with allocation_box.expander("View allocation table"):
+    with allocation_column.expander("View allocation table"):
         st.dataframe(
             allocation.style.format({"Allocation": "{:.1%}"}),
             hide_index=True,
@@ -889,21 +906,18 @@ def render(scenario: dict | None = None) -> None:
             )
 
     # --- Explain the current allocation without implying a forecast ---
-    sharpe_gap = optimal_sharpe - sharpe
+    with takeaway.container(border=True):
+        st.markdown(
+            f"**Largest holding:** {top['Asset']} "
+            f"({ASSET_NAMES[top['Asset']]}) — "
+            f"**{top['Allocation']:.1%}** of the optimised portfolio.\n\n"
+            f"**Estimated Sharpe ratio:** {optimal_sharpe:.2f} "
+            f"for the optimised mix versus {sharpe:.2f} "
+            "for equal weights."
+        )
 
-    if np.isclose(sharpe_gap, 0.0, atol=0.005, rtol=0):
-        comparison_note = "The two Sharpe ratios are approximately equal."
-    elif sharpe_gap > 0:
-        comparison_note = "The optimised mix has the higher estimated Sharpe ratio."
-    else:
-        comparison_note = "The equal-weight mix has the higher estimated Sharpe ratio."
-
-    takeaway.info(
-        f"The optimised mix puts {top['Allocation']:.1%} in "
-        f"{top['Asset']} ({ASSET_NAMES[top['Asset']]}). "
-        f"Estimated Sharpe: {optimal_sharpe:.2f}, compared with "
-        f"{sharpe:.2f} for equal weights. {comparison_note}{flat_note}"
-    )
+        if flat_note:
+            st.caption(flat_note.strip())
 
     # --- Historical backtest ---
     with st.expander("Historical backtest: fitted on 2015–21, tested on 2022–24"):
