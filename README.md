@@ -72,6 +72,22 @@ A bar chart comparing the historical interest-rate sensitivity of eight ETFs (SP
 
 **Reliability:** market data downloads are cached using Streamlit. ETF prices and Treasury yields are aligned by date before regression, and observations with missing values are excluded. Results are recalculated when the selected frequency or start year changes. The estimated sensitivities are also shared with Panel 3 for portfolio analysis. Historical relationships are not guaranteed to hold in future scenarios.
 
+## Panel 3: Build the best portfolio (Conall Mooney)
+
+**Question:** how can shares, bonds and gold be combined to balance estimated return and risk, and how would a portfolio fitted before 2022 have performed afterwards?
+
+An interactive efficient frontier compares an equal-weight portfolio, individual assets, a user-defined allocation and a portfolio optimised for the highest estimated Sharpe ratio. A doughnut chart shows the optimised weights, while a dashed line illustrates combining risk-free cash with the optimised mix without borrowing.
+
+A historical backtest fits weights using 2015–2021 data and evaluates buy-and-hold performance during 2022–2024 against SPY and a 60/40 SPY–TLT benchmark. It reports total return, annualised compound return, volatility and maximum drawdown.
+
+**Controls:** eight ETFs (SPY, TLT, GLD, XLE, XLU, QQQ, IWM and EFA), maximum allocation per asset, estimation window and custom portfolio weights.
+
+**Data and assumptions:** daily adjusted prices from Yahoo Finance via `yfinance`, cached for a day with a saved CSV fallback. Estimates use 252 trading days per year. Optimised weights total 100%, with no short selling. Results are in USD and exclude costs, taxes and currency conversion. Historical estimates are not forecasts.
+
+**Connections:** uses Panel 2's scenario risk-free rate and available asset sensitivities; otherwise explains the historical assumptions used. Publishes the optimised portfolio through `st.session_state["p3_result"]` for Panel 4.
+
+**Files:** `panel_c/model_c.py` (panel), `data.py` (shared loader), `style.py` (shared chart style), `data/fallback/etf_prices.csv` (saved prices).
+
 ## Panel 4: What could it become? (Hannah McElligott)
 
 **Question:** how much could someone saving every month end up with, in today's euros?
