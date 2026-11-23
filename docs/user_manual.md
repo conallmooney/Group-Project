@@ -7,7 +7,9 @@ TODO: what the scenario switch does
 
 Shows where inflation struck around the world from 2000 to 2024, and how it related to growth, for around 190 countries. This panel shows history, so it does not change with the scenario.
 
-![Panel 1: bubble chart for 2022](img/p1_results.png)
+![Panel 1 in Bubbles view, 2022](img/p1_bubbles.png)
+
+![Panel 1 in Globe view, 2022](img/p1_globe.png)
 
 **Controls**
 
