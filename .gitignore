@@ -1,17 +1,2 @@
-# Local Python environment
-.venv/
-
-# Generated Python files
+secrets.toml
 __pycache__/
-*.py[cod]
-
-# Local secrets
-.streamlit/secrets.toml
-.env
-.env.*
-
-# macOS files
-.DS_Store
-
-# Temporary Streamlit test
-test_streamlit.py
