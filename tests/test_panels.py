@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from interest_rate_model_b import calculate_sensitivities
+from panel_b.model_b import calculate_sensitivities
 
 from panel_c.model_c import portfolio_stats
 
