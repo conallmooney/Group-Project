@@ -372,7 +372,7 @@ def render(scenario: dict) -> None:
         scenario (dict): The chosen scenario, with keys "name", "shock_pp",
             "inflation" and "rf".
     """
-    st.subheader("Panel 4 -  What could it become?")
+    st.subheader("What could it become?")
     headline_slot = st.empty()
 
     # --- Default inflation: the scenario's if it has one, else Ireland's latest real rate ---
@@ -385,13 +385,18 @@ def render(scenario: dict) -> None:
         default_inflation, wb_year = latest_inflation(world_bank)
         inflation_source = f"Ireland's latest real rate, {wb_year}, World Bank. {wb_note}"
 
+    default_pct = round(default_inflation * 100, 1)
+    if st.session_state.get("p4_inflation_default") != default_pct:
+        st.session_state["p4_inflation"] = default_pct
+        st.session_state["p4_inflation_default"] = default_pct
+
     # --- Controls ---
     # Row 1: the three sliders
     c1, c2, c3 = st.columns(3)
     monthly = c1.slider("Monthly (€)", 0, 1000, 150, step=25, key="p4_monthly")
     years = c2.slider("Years", 5, 40, 30, key="p4_years")
     inflation = c3.slider("Inflation (% a year)", 0.0, 8.0,
-                          round(default_inflation * 100, 1), step=0.1, key="p4_inflation") / 100
+                           step=0.1, key="p4_inflation") / 100
 
     # Row 2: the two amounts
     c4, c5 = st.columns(2)
