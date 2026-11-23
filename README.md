@@ -60,7 +60,8 @@ A bar chart comparing the historical interest-rate sensitivity of eight ETFs (SP
 
 **Controls:** data frequency (daily / weekly / monthly), regression start year (2015 / 2017 / 2019 / 2021), interest-rate shock slider (−3 to +3 percentage points), and shared economic scenario selector.
 
-**Files:** `panel_b/model_b.py` (panel), `market_data_b.py` (market data loaders), `interest_rate_model_b.py` (regression and scenario calculations), `scenarios.py` (shared economic scenarios), `style.py` (shared chart style).
+
+**Files:** `panel_b/model_b.py` (interest-rate regression, scenario calculations and dashboard), `data.py` (shared ETF and Treasury data loaders, regression data preparation and offline fallbacks), `scenarios.py` (shared economic scenarios), `style.py` (shared chart style).
 
 ### Data source
 

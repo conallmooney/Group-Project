@@ -105,7 +105,6 @@ def get_sensitivities(frequency: str, start_year: int):
 
     return calculate_sensitivities(regression_data)
 
-
 def render(scenario: dict) -> None:
     """Render the compact interest-rate sensitivity panel."""
 
@@ -155,11 +154,12 @@ def render(scenario: dict) -> None:
 
     # Calculate automatically, with caching.
     try:
-        with st.spinner("Estimating ETF sensitivities..."):
+         with st.spinner("Estimating ETF sensitivities..."):
             sensitivities = get_sensitivities(
                 frequency,
                 start_year,
-            )
+            )   
+
 
     except Exception as exc:
         st.error("Unable to calculate ETF sensitivities.")
