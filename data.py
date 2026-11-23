@@ -122,12 +122,15 @@ def save_snapshot() -> None:
 
 # --- ETF prices for the portfolio panel ---
 
+
 @st.cache_data(ttl=60 * 60 * 24)
 def load_prices(
     tickers: tuple[str, ...],
     start: str = "2015-01-01",
+    end: str | None = None,
 ) -> pd.DataFrame:
-    """Return adjusted daily ETF prices, using a saved CSV if downloading fails."""
+    """Load adjusted ETF prices, using saved CSV data if offline."""
+
     if not tickers:
         raise ValueError("Choose at least one asset.")
 
@@ -137,27 +140,29 @@ def load_prices(
         downloaded = yf.download(
             tickers=list(tickers),
             start=start,
+            end=end,
             auto_adjust=True,
             progress=False,
         )
 
         if downloaded is None or downloaded.empty:
-            raise ValueError("No prices were downloaded.")
+            raise ValueError("No ETF prices downloaded.")
 
         prices = downloaded["Close"].copy()
+
+        if isinstance(prices, pd.Series):
+            prices = prices.to_frame(name=tickers[0])
+
         prices = prices.reindex(columns=list(tickers))
         prices = prices.dropna(how="all")
 
-        missing = prices.columns[prices.isna().all()].tolist()
-        if missing:
-            raise ValueError(f"Missing prices for: {', '.join(missing)}")
-
-        return prices
+        if prices.empty or prices.isna().all().any():
+            raise ValueError("Incomplete ETF price data.")
 
     except Exception as error:
         if not fallback_path.exists():
             raise RuntimeError(
-                "Price download failed and no saved ETF data is available."
+                "ETF download failed and no fallback CSV exists."
             ) from error
 
         prices = pd.read_csv(
@@ -170,24 +175,220 @@ def load_prices(
             ticker for ticker in tickers
             if ticker not in prices.columns
         ]
+
         if missing:
             raise ValueError(
-                f"Saved data does not contain: {', '.join(missing)}"
+                f"Saved ETF data is missing: {', '.join(missing)}"
             ) from error
 
-        prices = prices.loc[
-            prices.index >= pd.Timestamp(start),
-            list(tickers),
-        ].dropna(how="all")
+        prices = prices.loc[:, list(tickers)]
 
-        if prices.empty or prices.isna().all().any():
-            raise ValueError(
-                "Saved data does not cover the requested assets and dates."
+        st.warning("Using saved ETF prices (offline fallback).")
+
+    prices.index = pd.to_datetime(prices.index)
+
+    date_mask = prices.index >= pd.Timestamp(start)
+
+    if end is not None:
+        date_mask &= prices.index < pd.Timestamp(end)
+
+    prices = prices.loc[date_mask].sort_index()
+    prices = prices.dropna(how="all")
+
+    if prices.empty or prices.isna().all().any():
+        raise ValueError(
+            "ETF data is missing assets or dates for this period."
+        )
+
+    return prices
+
+
+# --- Treasury yields for Panel B ---
+# Author: Eoin Cunningham
+
+@st.cache_data(ttl=60 * 60 * 24)
+def load_treasury_yields(
+    start: str = "2015-01-01",
+    end: str = "2025-01-01",
+) -> pd.DataFrame:
+    """Load FRED 10-year Treasury yields with CSV fallback."""
+
+    fallback_path = FALLBACK_DIR / "treasury_yields.csv"
+
+    try:
+        url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10"
+
+        yields = pd.read_csv(
+            url,
+            index_col=0,
+            parse_dates=True,
+            na_values=["."],
+        )
+
+        if "DGS10" not in yields.columns:
+            raise ValueError("Missing DGS10 column.")
+
+        yields["DGS10"] = pd.to_numeric(
+            yields["DGS10"], errors="coerce"
+        )
+
+        yields = yields.dropna(subset=["DGS10"])
+
+        if yields.empty:
+            raise ValueError("No Treasury yields downloaded.")
+
+    except Exception as error:
+        if not fallback_path.exists():
+            raise RuntimeError(
+                "FRED unavailable and no Treasury fallback exists."
             ) from error
 
-        st.warning("Live prices unavailable. Using saved ETF prices.")
-        return prices
+        yields = pd.read_csv(
+            fallback_path,
+            index_col=0,
+            parse_dates=True,
+        )
+
+        st.warning("Using saved Treasury yields (offline fallback).")
+
+    if "DGS10" not in yields.columns:
+        raise ValueError("Missing DGS10 column.")
+
+    yields.index = pd.to_datetime(yields.index)
+    yields["DGS10"] = pd.to_numeric(
+        yields["DGS10"], errors="coerce"
+    )
+
+    yields = yields.dropna(subset=["DGS10"])
+
+    yields = yields.loc[
+        (yields.index >= pd.Timestamp(start))
+        & (yields.index < pd.Timestamp(end))
+    ]
+
+    if yields.empty:
+        raise ValueError("No Treasury data for this period.")
+
+    return yields.sort_index()
+
+
+# --- Panel B: Regression data preparation ---
+# Author: Eoin Cunningham
+
+def prepare_regression_data(
+    prices: pd.DataFrame,
+    yields: pd.DataFrame,
+    frequency: str = "Monthly",
+) -> pd.DataFrame:
+    """Prepare ETF returns and Treasury yield changes for regression."""
+
+    frequency_rules = {
+        "Daily": None,
+        "Weekly": "W-FRI",
+        "Monthly": "ME",
+    }
+
+    if frequency not in frequency_rules:
+        raise ValueError(
+            "Frequency must be Daily, Weekly, or Monthly."
+        )
+
+    clean_prices = prices.sort_index()
+    clean_yields = yields["DGS10"].dropna().sort_index()
+
+    rule = frequency_rules[frequency]
+
+    if rule is not None:
+        clean_prices = clean_prices.resample(rule).last()
+        clean_yields = clean_yields.resample(rule).last()
+
+    # ETF returns in percentage terms.
+    returns = clean_prices.pct_change(fill_method=None) * 100
+
+    # Treasury yield changes in percentage points.
+    yield_changes = clean_yields.diff()
+
+    combined = returns.join(
+        yield_changes.rename("yield_change"),
+        how="inner",
+    )
+
+    return combined.dropna(subset=["yield_change"])
+
+
+# --- Offline market snapshots for Panels B and C ---
+# Author: Eoin Cunningham
+
+def save_market_snapshots() -> None:
+    """Download and save ETF prices and Treasury yields for offline use."""
+
+    tickers = (
+        "SPY", "TLT", "GLD", "XLE",
+        "XLU", "QQQ", "IWM", "EFA",
+    )
+
+    start = "2015-01-01"
+    end = "2025-01-01"
+
+    FALLBACK_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Download ETF prices.
+    downloaded = yf.download(
+        tickers=list(tickers),
+        start=start,
+        end=end,
+        auto_adjust=True,
+        progress=False,
+    )
+
+    if downloaded is None or downloaded.empty:
+        raise ValueError("ETF download failed.")
+
+    prices = downloaded["Close"].copy()
+    prices = prices.reindex(columns=list(tickers))
+
+    if prices.empty or prices.isna().all().any():
+        raise ValueError("ETF snapshot is incomplete.")
+
+    prices.sort_index().to_csv(
+        FALLBACK_DIR / "etf_prices.csv"
+    )
+
+    print("Saved ETF price snapshot.")
+
+    # Download US 10-year Treasury yields.
+    url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10"
+
+    yields = pd.read_csv(
+        url,
+        index_col=0,
+        parse_dates=True,
+        na_values=["."],
+    )
+
+    if "DGS10" not in yields.columns:
+        raise ValueError("DGS10 column is missing.")
+
+    yields["DGS10"] = pd.to_numeric(
+        yields["DGS10"],
+        errors="coerce",
+    )
+
+    yields = yields.loc[
+        (yields.index >= pd.Timestamp(start))
+        & (yields.index < pd.Timestamp(end))
+    ].dropna(subset=["DGS10"])
+
+    if yields.empty:
+        raise ValueError("Treasury snapshot is empty.")
+
+    yields.sort_index().to_csv(
+        FALLBACK_DIR / "treasury_yields.csv"
+    )
+
+    print("Saved Treasury yield snapshot.")
 
 
 if __name__ == "__main__":
     save_snapshot()
+    save_market_snapshots()
