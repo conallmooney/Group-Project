@@ -90,13 +90,17 @@ A historical backtest fits weights using 2015–2021 data and evaluates buy-and-
 
 ## Panel 4: What could it become? (Hannah McElligott)
 
-**Question:** how much could someone saving every month end up with, in today's euros?
+**Question:** how much could someone saving every month end up with, in today's euros, and how likely are they to reach their goal?
 
-A Monte Carlo fan chart of 1,000 simulated futures, showing the bad, middle and good outcomes and the chance of reaching a savings goal. Each future either re-uses real historical months of the chosen portfolio in a random order (bootstrap) or draws from a normal distribution with the same mean and volatility, and everything is converted to today's euros using the scenario's inflation (or Ireland's latest World Bank rate by default).
+A Monte Carlo fan chart of 1,000 simulated futures, showing the bad (1 in 20), middle and good (1 in 20) outcomes and the chance of reaching a savings goal. Shaded bands show the middle 50% and 90% of outcomes, a dashed line shows the total paid in, and a dotted line marks the goal. Each future either re-uses real historical months of the chosen portfolio in a random order (bootstrap), so it includes real crashes such as 2020 and 2022, or draws from a normal distribution with the same mean and volatility (bell curve). Everything is converted to today's euros using the scenario's inflation, or Ireland's latest World Bank rate by default.
 
 **Controls:** monthly amount, years, inflation, starting amount, savings goal, a 3-question risk quiz (Cautious 30/70, Balanced 60/40, Adventurous 90/10 shares/bonds), use Panel 3's optimal portfolio instead, simulation method (bootstrap or bell curve), and "Download my projection" (CSV).
 
-**Files:** `panel_d/model_d.py` (panel), `tests/test_p4_future.py` (tests), `data.py` (shared loaders), `style.py` (shared chart style).
+**Data and assumptions:** daily adjusted SPY (shares) and TLT (bonds) prices from Yahoo Finance via `data.load_prices`, converted to monthly returns; Ireland's latest annual inflation rate from the World Bank (`FP.CPI.TOTL.ZG`) via `data.load_world_bank`. Both have saved CSV fallbacks, so the panel works offline. Prices are in USD, and exchange-rate effects, fees and taxes are ignored. Results show a range of possible outcomes based on history, not a forecast.
+
+**Connections:** uses the inflation rate from Panel 2's scenario (converted from percent to a decimal). When Panel 3's portfolio is chosen, reads `st.session_state["p3_result"]` and uses its funds, weights, expected return (converted to a compound rate), volatility and estimation dates.
+
+**Files:** `panel_d/model_d.py` (panel), `tests/test_p4_future.py` (tests), `docs/risk_quiz.md` (quiz scoring), `data.py` (shared loaders), `style.py` (shared chart style).
 
 ## Authors
 
