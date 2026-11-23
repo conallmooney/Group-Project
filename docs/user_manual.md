@@ -48,8 +48,87 @@ Shows where inflation struck around the world from 2000 to 2024, and how it rela
 All values are historical World Bank data, not forecasts.
 ## 4. Panel 2: Who wins when rates move?
 TODO
+
 ## 5. Panel 3: Build the best portfolio
-TODO
+
+Explore how different investments can be combined to balance estimated return and risk. The panel compares an equal-weight portfolio with an optimised portfolio that maximises the estimated Sharpe ratio under your chosen allocation limit.
+
+![Panel 3 showing portfolio metrics, the efficient frontier and optimised allocations](img/p3_results.png)
+
+**Controls**
+
+- **Assets:** choose from SPY, TLT, GLD, XLE, XLU, QQQ, IWM and EFA. At least three assets are required.
+- **Maximum allocation per asset:** limits how much the optimiser can put into one asset. Allocations must still total 100%, so selecting fewer assets may require a higher limit.
+- **Estimation window:** use all available history or the last 3, 5 or 10 years. The window ends at the latest available price observation.
+- **Economic scenario:** the shared scenario supplies the risk-free rate. When Panel 2 supplies sensitivities for every selected asset, Panel 3 also applies an illustrative rate-shock adjustment to estimated returns. The data and assumptions section explains the calculation.
+
+**The headline numbers**
+
+- **Estimated annual return:** an annualised estimate based on historical daily returns, including any scenario adjustment.
+- **Annual volatility:** the estimated variability of returns. Higher volatility means greater variation, including potential losses.
+- **Sharpe ratio:** estimated return above the risk-free rate, divided by volatility. A higher value indicates more estimated excess return per unit of risk.
+- **Largest holding:** the asset receiving the highest allocation in the optimised portfolio.
+
+The comparisons underneath the metrics show differences from an equal-weight portfolio. “pp” means percentage points: moving from 8% to 10% is an increase of 2 percentage points.
+
+Open **Compare portfolio metrics** to see both portfolios together.
+
+**How to read the risk–return chart**
+
+- **Horizontal axis:** annual volatility. Further right means higher estimated risk.
+- **Vertical axis:** estimated annual return.
+- **Efficient frontier:** portfolios with the lowest estimated volatility for each return target, subject to the selected allocation limit.
+- **Gold star:** the optimised maximum-Sharpe portfolio.
+- **Grey filled point:** the equal-weight portfolio.
+- **Hollow points:** individual assets. These represent investing 100% in one ETF, so they may exceed your allocation limit.
+- **Dashed line, labelled Capital Market Line:** illustrates combinations of risk-free cash and the optimised portfolio. It stops at the star because borrowing is excluded. It is an illustrative cash-and-portfolio line rather than an estimate of the economy-wide market portfolio.
+
+Hover over the chart to inspect individual points.
+
+**Optimised allocation**
+
+The doughnut chart shows the optimised holdings. Allocations below 0.5% are grouped into **Other**.
+
+Open **View allocation table** to see every selected asset and its weight. Some selected assets may receive a zero allocation.
+
+**Try your own mix**
+
+Expand **Try your own mix** and enter percentages totalling 100%.
+
+A valid custom portfolio appears as a purple diamond on the risk–return chart, with its estimated return, volatility and Sharpe ratio shown below the inputs.
+
+The maximum-allocation slider constrains the optimiser, not your custom mix. Panel 4 continues to receive the optimised portfolio rather than your custom allocation.
+
+**Historical backtest**
+
+Expand **Historical backtest: fitted on 2015–21, tested on 2022–24**.
+
+The panel estimates portfolio weights using only 2015–2021 data, then evaluates their buy-and-hold performance during 2022–2024. The comparison starts at US$100 at the final available close of 2021.
+
+The chart compares:
+
+- The portfolio optimised using the training period.
+- A portfolio initially allocated 60% to SPY and 40% to TLT.
+- SPY alone.
+
+The results table reports total return, annualised compound return, annual volatility and maximum drawdown. Maximum drawdown is the largest fall from a previous portfolio-value peak.
+
+This backtest uses your selected assets and allocation limit, but a fixed 3% risk-free rate. It is independent of the current estimation-window selector and scenario adjustments. Holdings are not rebalanced during the test period.
+
+**Using the portfolio in Panel 4**
+
+Open Panel 4 and select **My Panel 3 portfolio** under **Use returns from**.
+
+Panel 4 receives the optimised funds, weights, estimated return, volatility and estimation dates. If Panel 3 cannot produce a valid portfolio, Panel 4 explains that the risk-quiz portfolio is being used instead.
+
+**Data and limitations**
+
+Open **Data, assumptions and latest prices** for the price table, calculation methods and scenario assumptions.
+
+Prices come from Yahoo Finance, with saved CSV data used if downloading fails. Calculations require at least 252 shared daily price observations.
+
+Returns are expressed in USD and exclude trading costs, taxes and currency conversion. Historical estimates, illustrative scenario adjustments and backtest results are not forecasts.
+
 ## 6. Panel 4: What could it become?
 Shows what someone saving every month could end up with, across 1,000 simulated futures, in today's euros.
 
