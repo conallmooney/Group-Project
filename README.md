@@ -56,43 +56,17 @@ and says so on screen. Refresh the snapshot with `python data.py`.
 
 **Question:** how can shares, bonds and gold be combined to balance estimated return and risk, and how would a portfolio fitted before 2022 have performed afterwards?
 
-The panel compares an equal-weight portfolio with a portfolio optimised for the highest estimated Sharpe ratio, subject to an allocation limit and no short selling. An interactive efficient frontier shows the available return–risk trade-offs, individual assets, the optimised mix and an optional user-defined portfolio. A dashed line illustrates combinations of risk-free cash and the optimised mix without borrowing. A doughnut chart shows the optimised allocations.
+An interactive efficient frontier compares an equal-weight portfolio, individual assets, a user-defined allocation and a portfolio optimised for the highest estimated Sharpe ratio. A doughnut chart shows the optimised weights, while a dashed line illustrates combining risk-free cash with the optimised mix without borrowing.
 
-A separate historical backtest fits portfolio weights using 2015–2021 data only, then evaluates buy-and-hold performance during 2022–2024 against SPY and a portfolio initially allocated 60% to SPY and 40% to TLT. It reports total return, annualised compound return, annual volatility and maximum drawdown.
+A historical backtest fits weights using 2015–2021 data and evaluates buy-and-hold performance during 2022–2024 against SPY and a 60/40 SPY–TLT benchmark. It reports total return, annualised compound return, volatility and maximum drawdown.
 
-**Controls:** asset selection (SPY, TLT, GLD, XLE, XLU, QQQ, IWM and EFA), maximum allocation per asset, historical estimation window, and custom portfolio weights.
+**Controls:** eight ETFs (SPY, TLT, GLD, XLE, XLU, QQQ, IWM and EFA), maximum allocation per asset, estimation window and custom portfolio weights.
 
-**Files:** `panel_c/model_c.py` (panel), `data.py` (shared price loader and CSV fallback), `style.py` (shared chart style), `data/fallback/etf_prices.csv` (saved prices).
+**Data and assumptions:** daily adjusted prices from Yahoo Finance via `yfinance`, cached for a day with a saved CSV fallback. Estimates use 252 trading days per year. Optimised weights total 100%, with no short selling. Results are in USD and exclude costs, taxes and currency conversion. Historical estimates are not forecasts.
 
-### Data source
+**Connections:** uses Panel 2's scenario risk-free rate and available asset sensitivities; otherwise explains the historical assumptions used. Publishes the optimised portfolio through `st.session_state["p3_result"]` for Panel 4.
 
-| **Provider** | **Data** | **Access** | **Frequency** | **Terms** |
-| ------------ | -------- | ---------- | ------------- | --------- |
-| [Yahoo Finance](https://finance.yahoo.com/) via `yfinance` | Adjusted closing prices for SPY, TLT, GLD, XLE, XLU, QQQ, IWM and EFA | Downloaded without an API key | Daily, from Jan 2015 | Yahoo Finance terms of use |
-
-**Reliability:** downloads are cached for a day. If downloading fails or a requested asset has no data, the loader attempts to use `data/fallback/etf_prices.csv` and displays a warning. The panel uses dates with prices for every selected asset and requires at least 252 shared price observations.
-
-### Methods and assumptions
-
-Estimated annual returns are mean daily percentage changes multiplied by 252. Annual covariance is daily covariance multiplied by 252. Portfolio volatility uses the asset weights and covariance matrix; the Sharpe ratio is estimated annual excess return divided by annual volatility.
-
-The optimiser uses SciPy's SLSQP method. Allocations must total 100%, remain non-negative and respect the selected maximum allocation. Optimisation uses historical estimates and does not guarantee future performance.
-
-**Scenario connection:** Panel 3 uses Person B's scenario risk-free rate when available, otherwise an assumed 3% annual rate. When all selected assets have Panel B sensitivities, an illustrative annual return adjustment is applied: sensitivity × rate shock ÷ 5, converted from percentage units to decimals. Historical covariance remains unchanged. If sensitivities are missing, all selected assets retain their historical return estimates and the panel explains why.
-
-**Panel 4 connection:** the optimised weights, estimated annual return, annual volatility, Sharpe ratio, estimation dates and scenario information are published through `st.session_state["p3_result"]`. Returns and volatility are supplied as annual decimals. Panel 4 continues to receive the optimised portfolio when a user explores a custom allocation.
-
-**Backtest assumptions:** weights are fitted using only the training period and a fixed 3% risk-free rate. The portfolios start at US$100 at the final available close of 2021 and are held without rebalancing through 2022–2024. This test is independent of the current estimation-window selector and scenario adjustments.
-
-**Limitations:** results use USD prices and exclude trading costs, taxes and currency conversion. Historical estimates and backtest results are not forecasts.
-
-### Run Panel 3 separately
-
-From the main project folder:
-
-```bash
-python -m streamlit run panel_c/model_c.py
-```
+**Files:** `panel_c/model_c.py` (panel), `data.py` (shared loader), `style.py` (shared chart style), `data/fallback/etf_prices.csv` (saved prices).
 
 ## Panel 4: What could it become? (Hannah McElligott)
 
