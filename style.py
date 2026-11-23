@@ -1,15 +1,18 @@
 """Shared look for every chart in the dashboard. Import this before making a chart.
 
 Author: Ciara Feeney (Person A): colours, region and asset colour maps, Plotly template.
+Theme: navy, teal and gold on a soft blue-grey page.
 """
 import plotly.graph_objects as go
 import plotly.io as pio
 
 # Core colours
-INK = "#13202C"       # main text
-MUTED = "#5A6878"     # axis labels, captions
-GRID = "#E8ECF0"      # gridlines
-ACCENT = "#0E6E8C"    # the dashboard's main colour
+NAVY = "#0B2545"      # banner and headings
+INK = "#0B2545"       # main text
+MUTED = "#52627A"     # axis labels, captions
+GRID = "#E3E9F0"      # gridlines
+ACCENT = "#0E6E8C"    # the dashboard's main colour (teal)
+GOLD = "#D99A1A"      # highlights, e.g. the best portfolio star
 POSITIVE = "#2E8F62"  # gains (Panel 2 bars)
 NEGATIVE = "#C9473F"  # losses (Panel 2 bars)
 
@@ -26,7 +29,7 @@ REGION_COLOURS = {
 
 # Panel 3: one fixed colour per asset
 ASSET_COLOURS = {
-    "SPY": ACCENT, "TLT": "#2E9E6A", "GLD": "#D99A1A",
+    "SPY": ACCENT, "TLT": "#2E9E6A", "GLD": GOLD,
     "XLE": "#C9473F", "XLU": "#3BA7C9", "QQQ": "#8E5AC8", "IWM": "#D2504A",
     "EFA": "#8C6D46",
 }
@@ -37,11 +40,11 @@ pio.templates["dashboard"] = go.layout.Template(
         font=dict(family="Source Sans Pro, sans-serif", size=13, color=INK),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        colorway=[ACCENT, "#D99A1A", "#2E9E6A", "#D2504A", "#8E5AC8", "#3BA7C9"],
-        xaxis=dict(gridcolor=GRID, zerolinecolor="#C9D1D9", linecolor=GRID,
-                   title_font=dict(color=MUTED)),
-        yaxis=dict(gridcolor=GRID, zerolinecolor="#C9D1D9", linecolor=GRID,
-                   title_font=dict(color=MUTED)),
+        colorway=[ACCENT, GOLD, "#2E9E6A", "#D2504A", "#8E5AC8", "#3BA7C9"],
+        xaxis=dict(gridcolor=GRID, zerolinecolor="#C3CDD8", linecolor=GRID,
+                   title_font=dict(color=MUTED), tickfont=dict(color=MUTED)),
+        yaxis=dict(gridcolor=GRID, zerolinecolor="#C3CDD8", linecolor=GRID,
+                   title_font=dict(color=MUTED), tickfont=dict(color=MUTED)),
         legend=dict(title_font=dict(color=MUTED)),
         margin=dict(l=40, r=20, t=30, b=40),
     )

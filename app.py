@@ -44,6 +44,8 @@ st.markdown(
     .stTabs [data-baseweb="tab-list"] { gap: 4px; }
     .stTabs [data-baseweb="tab"] { padding: 10px 18px; }
     .stTabs [data-baseweb="tab"] p { font-size: 1.02rem; font-weight: 600; }
+    [data-testid="stVerticalBlockBorderWrapper"] { background: #FFFFFF; }
+    [data-testid="stMetric"] { background: #FFFFFF; border-radius: 8px; }
     </style>
     """,
     unsafe_allow_html=True,
