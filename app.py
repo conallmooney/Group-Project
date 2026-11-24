@@ -395,10 +395,10 @@ def overview_panel_4(card) -> None:
     fig = go.Figure([
         go.Scatter(x=x, y=fan["5"], mode="lines", line=dict(width=0), hoverinfo="skip"),
         go.Scatter(x=x, y=fan["95"], mode="lines", line=dict(width=0), fill="tonexty",
-                   fillcolor="rgba(14,110,140,0.15)", hoverinfo="skip"),
+                   fillcolor=style.FAN_OUTER, hoverinfo="skip"),
         go.Scatter(x=x, y=fan["25"], mode="lines", line=dict(width=0), hoverinfo="skip"),
         go.Scatter(x=x, y=fan["75"], mode="lines", line=dict(width=0), fill="tonexty",
-                   fillcolor="rgba(14,110,140,0.35)", hoverinfo="skip"),
+                   fillcolor=style.FAN_INNER, hoverinfo="skip"),
         go.Scatter(x=x, y=fan["50"], mode="lines", line=dict(color=style.ACCENT, width=3),
                    name="Middle outcome", hovertemplate="Year %{x}: €%{y:,.0f}<extra></extra>"),
         go.Scatter(x=x, y=result["paid"], mode="lines",

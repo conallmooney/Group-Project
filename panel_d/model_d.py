@@ -12,7 +12,7 @@ import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
 
-from style import ACCENT, INK, MUTED
+from style import ACCENT, INK, MUTED, FAN_OUTER, FAN_INNER
 from data import load_prices, load_world_bank
 
 
@@ -470,14 +470,14 @@ def render(scenario: dict) -> None:
     fig.add_trace(go.Scatter(x=x, y=fan[5][::12], mode="lines", line=dict(width=0),
                              showlegend=False, name="Bad case"))
     fig.add_trace(go.Scatter(x=x, y=fan[95][::12], mode="lines", line=dict(width=0),
-                             fill="tonexty", fillcolor="rgba(14,110,140,0.15)",
+                             fill="tonexty", fillcolor=FAN_OUTER,
                              name="Good case"))
 
     # Darker band: the middle half of futures, between the 25th and 75th percentiles
     fig.add_trace(go.Scatter(x=x, y=fan[25][::12], mode="lines", line=dict(width=0),
                              showlegend=False, name="Lower middle"))
     fig.add_trace(go.Scatter(x=x, y=fan[75][::12], mode="lines", line=dict(width=0),
-                             fill="tonexty", fillcolor="rgba(14,110,140,0.35)",
+                             fill="tonexty", fillcolor=FAN_INNER,
                              name="Upper middle"))
     
     fig.add_trace(go.Scatter(x=x, y=fan[50][::12], mode="lines", name="Middle outcome", line=dict(color=ACCENT, width=3)))
