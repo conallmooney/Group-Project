@@ -81,7 +81,7 @@ def apply_dashboard_style() -> None:
             filter: saturate(1.25);
         }}
 
-                /* Stronger findings and metric labels improve readability. */
+        /* Stronger findings and metric labels improve readability. */
         [class*="st-key-card_overview_"]
         [data-testid="stMarkdownContainer"] strong {{
             color: {INK};
@@ -98,14 +98,14 @@ def apply_dashboard_style() -> None:
             font-weight: 600;
         }}
 
-                /* Avoid extra boxes inside the portfolio overview card. */
+        /* Avoid extra boxes inside the portfolio overview card. */
         .st-key-card_overview_3 [data-testid="stMetric"] {{
             background: transparent;
             border: none;
             padding: 0;
         }}
 
-        /* Readable navigation and teal overview footers. */
+        /* Readable navigation and navy overview footers. */
         .stTabs [data-baseweb="tab-list"] {{ gap: 4px; }}
         .stTabs [data-baseweb="tab"] {{ padding: 10px 18px; }}
         .stTabs [data-baseweb="tab"] p {{

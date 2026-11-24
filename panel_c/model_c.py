@@ -944,7 +944,7 @@ def render(scenario: dict | None = None) -> None:
                     "variable": "Portfolio",
                 },
                 color_discrete_map={
-                    "Optimised portfolio":ACCENT,
+                    "Optimised portfolio": ACCENT,
                     "60/40 shares–bonds": GOLD,
                     "SPY": MUTED,
                 },
