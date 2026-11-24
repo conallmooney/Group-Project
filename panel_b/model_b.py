@@ -289,6 +289,7 @@ def render(scenario: dict) -> None:
         fig,
         use_container_width=True,
         config={"displayModeBar": False},
+        theme=None,
     )
 
     # One concise scenario takeaway.
