@@ -38,6 +38,8 @@ Start by choosing an economic scenario at the top of the dashboard. The **Overvi
 
 The dashboard updates as you change its controls.
 
+![The Overview tab with the Stagflation scenario selected](img/overview.png)
+
 **Internet access:** an internet connection is recommended for downloading market and economic data. Saved fallback datasets support offline operation when live data sources are unavailable. No FRED API key is required.
 
 To close the application, return to the terminal and press Ctrl+C.
