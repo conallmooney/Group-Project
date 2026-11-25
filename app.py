@@ -162,8 +162,15 @@ with st.container(border=True, key="card_scenario"):
 
 st.session_state["scenario"] = scenario
 
-# --- Headline numbers: filled in once the panels have run ---
-headline_slots = [column.empty() for column in st.columns(4)]
+# Stretch the four headline cards to the same height.
+headline_slots = [
+    column.container(
+        border=True,
+        height="stretch",
+        key=f"card_headline_{index}",
+    )
+    for index, column in enumerate(st.columns(4), start=1)
+]
 
 # --- Tabs: an overview, then each panel full width ---
 tab_overview, tab_a, tab_b, tab_c, tab_d = st.tabs([
@@ -186,6 +193,7 @@ with tab_overview:
     cards = [
         column.container(
             border=True,
+            height="stretch",
             key=f"card_overview_{index}",
         )
         for index, column in enumerate(
@@ -481,7 +489,7 @@ def fill_headline_numbers() -> None:
 
     if saver:
         with headline_slots[3].container(
-            border=True,
+            border=False,
             key="card_saver",
         ):
             st.metric(
