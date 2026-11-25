@@ -3,34 +3,40 @@
 
 Rates, Risk & Returns is an interactive financial dashboard that explores the relationship between economic conditions, interest rates, investment portfolios and future savings.
 
-**Requirements:** Python 3.11 or newer and the Python packages listed in `requirements.txt`.
+**Requirements:** Python and Git. The dashboard was developed with Python 3.14; other versions have not been fully tested.
 
 **Opening the dashboard locally**
 
-1. Download or clone the project repository from GitHub.
-2. Open a terminal in the project folder.
+1. Download or clone the project from GitHub, and open a terminal in the project folder (the one containing `app.py`).
+2. Create and activate a virtual environment, which keeps the project's packages separate:
+
+   macOS / Linux:
+
+   `python3 -m venv .venv`
+   `source .venv/bin/activate`
+
+   Windows:
+
+   `py -m venv .venv`
+   `.venv\Scripts\activate.bat`
+
 3. Install the required packages:
 
-   `pip install -r requirements.txt`
+   `python -m pip install -r requirements.txt`
 
 4. Launch the dashboard:
 
-   `streamlit run app.py`
+   `python -m streamlit run app.py`
 
-5. The dashboard should open automatically in your web browser. If it does not, open the local URL displayed in the terminal, normally `http://localhost:8501`.
+5. The dashboard should open in your web browser. If it does not, open the local URL shown in the terminal, usually `http://localhost:8501`.
+
+Using `python -m` makes sure the packages are installed into, and run from, the same Python.
 
 **Navigating the dashboard**
 
-The dashboard is arranged in a two-by-two layout:
+Start by choosing an economic scenario at the top of the dashboard. The **Overview** tab summarises all four panels; open each panel's tab for its full charts and controls. Work through the panels in order to follow the story: the economic context, how investments respond to rates, building a portfolio, and what savings could grow to.
 
-| Top left | Top right |
-|---|---|
-| Panel 1: Global Economy | Panel 2: Interest Rate Sensitivity |
-| Panel 3: Portfolio Optimiser | Panel 4: Savings Simulation |
-
-Start by choosing an economic scenario at the top of the dashboard. Explore each panel in numerical order to understand the economic context, compare investments, construct a portfolio and simulate future savings.
-
-The dashboard updates interactively as you change its controls.
+The dashboard updates as you change its controls.
 
 **Internet access:** an internet connection is recommended for downloading market and economic data. Saved fallback datasets support offline operation when live data sources are unavailable. No FRED API key is required.
 
@@ -254,7 +260,7 @@ All values are a range of possible outcomes, not a forecast.
 
 | Problem | Possible cause | Solution |
 |---|---|---|
-| Dashboard does not launch | Missing Python packages | Run `pip install -r requirements.txt` from the project folder. |
+| Dashboard does not launch | Missing Python packages | Run `python -m pip install -r requirements.txt`  from the project folder. |
 | Streamlit command not recognised | Streamlit is not installed or is unavailable in the current Python environment | Run `python -m streamlit run app.py` after installing the requirements. |
 | Browser does not open automatically | Browser or local server settings | Open the local URL displayed in the terminal. |
 | Live market data is unavailable | Internet connection problems or external data provider failure | The dashboard can use saved fallback datasets where available. |
@@ -267,7 +273,7 @@ All values are a range of possible outcomes, not a forecast.
 
 Return to the terminal, press Ctrl+C and run:
 
-`streamlit run app.py`
+`python -m streamlit run app.py`
 
 **Data reliability**
 
