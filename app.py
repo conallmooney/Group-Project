@@ -37,33 +37,49 @@ SCENARIO_NOTES = {
     "Custom": "Set your own rate shock, inflation and risk-free rate below.",
 }
 
-# --- Small style touches: bolder, roomier tab labels ---
-st.markdown(
-    """
-    <style>
-    .stTabs [data-baseweb="tab-list"] { gap: 4px; }
-    .stTabs [data-baseweb="tab"] { padding: 10px 18px; }
-    .stTabs [data-baseweb="tab"] p { font-size: 1.02rem; font-weight: 600; }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# Apply the shared appearance to the Overview and every panel tab.
+style.apply_dashboard_style()
 
 # --- Banner ---
 st.markdown(
-    """
-    <div style="background: linear-gradient(90deg, #0B4F66 0%, #0E6E8C 55%, #3BA7C9 100%);
-                border-radius: 14px; padding: 26px 30px; margin-bottom: 18px;">
-      <div style="color: #CDEBF3; font-size: 0.8rem; font-weight: 700;
-                  letter-spacing: 0.08em;">RATES, RISK &amp; RETURNS</div>
-      <div style="color: #FFFFFF; font-size: 1.75rem; font-weight: 700;
-                  line-height: 1.25; margin-top: 6px;">
-        How the 2021–23 inflation shock travelled from the world economy to your savings
-      </div>
-      <div style="color: #E3F3F8; font-size: 0.98rem; margin-top: 8px;">
-        Pick a scenario below. It flows through all four panels, from global
-        inflation to what a saver's money is really worth.
-      </div>
+    f"""
+    <div style="
+        background: linear-gradient(
+            110deg,
+            {style.NAVY} 0%,
+            #07536B 48%,
+            #00889A 100%
+        );
+        border-radius: 14px;
+        padding: 26px 30px;
+        margin-bottom: 18px;
+    ">
+        <div style="
+            color: #D6EBF2;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+        ">
+            RATES, RISK &amp; RETURNS
+        </div>
+        <div style="
+            color: #FFFFFF;
+            font-size: 1.75rem;
+            font-weight: 700;
+            line-height: 1.25;
+            margin-top: 6px;
+        ">
+            How the 2021–23 inflation shock travelled
+            from the world economy to your savings
+        </div>
+        <div style="
+            color: #E3F3F8;
+            font-size: 0.98rem;
+            margin-top: 8px;
+        ">
+            Explore historical inflation, then see how
+            rate scenarios affect investments and savings.
+        </div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -99,7 +115,7 @@ if "custom_shock" not in st.session_state:
         st.session_state.get("panel_b_shock", 0.0)
     )
 
-with st.container(border=True):
+with st.container(border=True, key="card_scenario"):
     scenario_name = st.segmented_control(
         "Economic scenario",
         scenario_names,
@@ -146,15 +162,8 @@ with st.container(border=True):
 
 st.session_state["scenario"] = scenario
 
-# Stretch the four headline cards to the same height.
-headline_slots = [
-    column.container(
-        border=True,
-        height="stretch",
-        key=f"card_headline_{index}",
-    )
-    for index, column in enumerate(st.columns(4), start=1)
-]
+# --- Headline numbers: filled in once the panels have run ---
+headline_slots = [column.empty() for column in st.columns(4)]
 
 # --- Tabs: an overview, then each panel full width ---
 tab_overview, tab_a, tab_b, tab_c, tab_d = st.tabs([
@@ -175,8 +184,14 @@ with tab_overview:
     top_left, top_right = st.columns(2, gap="medium")
     bottom_left, bottom_right = st.columns(2, gap="medium")
     cards = [
-        column.container(border=True, height="stretch", key=f"card_overview_{index}")
-        for column in (top_left, top_right, bottom_left, bottom_right)
+        column.container(
+            border=True,
+            key=f"card_overview_{index}",
+        )
+        for index, column in enumerate(
+            (top_left, top_right, bottom_left, bottom_right),
+            start=1,
+        )
     ]
 
 
@@ -211,12 +226,33 @@ MINI_HEIGHT = 300
 
 
 def mini_layout(fig: go.Figure) -> go.Figure:
-    """Shared look for the small overview charts."""
+    """Apply the shared appearance to the overview charts."""
     fig.update_layout(
+        template="plotly_white+dashboard",
         height=MINI_HEIGHT,
-        margin=dict(l=10, r=10, t=10, b=10),
+        paper_bgcolor=style.SURFACE,
+        plot_bgcolor=style.SURFACE,
+        font=dict(size=14, color=style.INK),
+        margin=dict(l=35, r=35, t=15, b=35),
         showlegend=False,
     )
+
+    fig.update_xaxes(
+        gridcolor=style.GRID,
+        zerolinecolor=style.BORDER,
+        tickfont=dict(size=13, color=style.MUTED),
+        title_font=dict(size=13, color=style.MUTED),
+        automargin=True,
+    )
+
+    fig.update_yaxes(
+        gridcolor=style.GRID,
+        zerolinecolor=style.BORDER,
+        tickfont=dict(size=13, color=style.MUTED),
+        title_font=dict(size=13, color=style.MUTED),
+        automargin=True,
+    )
+
     return fig
 
 
@@ -227,7 +263,15 @@ def card_header(card, number: str, title: str, headline: str) -> None:
 
 
 def card_footer(card, tab_name: str) -> None:
-    card.caption(f"Open the **{tab_name}** tab for the full panel →")
+    """Show a subtle link-style instruction to the detailed panel."""
+    panel_number = tab_name.split()[0]
+
+    card.markdown(
+        f'<p class="overview-footer">'
+        f"Open Panel {panel_number} for the full detail →"
+        f"</p>",
+        unsafe_allow_html=True,
+    )
 
 
 def overview_panel_1(card) -> None:
@@ -351,10 +395,10 @@ def overview_panel_4(card) -> None:
     fig = go.Figure([
         go.Scatter(x=x, y=fan["5"], mode="lines", line=dict(width=0), hoverinfo="skip"),
         go.Scatter(x=x, y=fan["95"], mode="lines", line=dict(width=0), fill="tonexty",
-                   fillcolor="rgba(14,110,140,0.15)", hoverinfo="skip"),
+                   fillcolor=style.FAN_OUTER, hoverinfo="skip"),
         go.Scatter(x=x, y=fan["25"], mode="lines", line=dict(width=0), hoverinfo="skip"),
         go.Scatter(x=x, y=fan["75"], mode="lines", line=dict(width=0), fill="tonexty",
-                   fillcolor="rgba(14,110,140,0.35)", hoverinfo="skip"),
+                   fillcolor=style.FAN_INNER, hoverinfo="skip"),
         go.Scatter(x=x, y=fan["50"], mode="lines", line=dict(color=style.ACCENT, width=3),
                    name="Middle outcome", hovertemplate="Year %{x}: €%{y:,.0f}<extra></extra>"),
         go.Scatter(x=x, y=result["paid"], mode="lines",
@@ -432,20 +476,33 @@ def fill_headline_numbers() -> None:
     else:
         headline_slots[2].metric("Best portfolio", "–", border=True)
 
-    # Panel 4: the saver's middle outcome in today's money
+    # Panel 4: middle outcome, with a separate goal-probability badge.
     saver = st.session_state.get("p4_result")
+
     if saver:
-        delta = (f"{saver['chance']:.0%} chance of €{saver['goal']:,.0f}"
-                 if saver.get("chance") is not None else None)
-        headline_slots[3].metric(
-            f"Saver after {saver['years']} years (today's €)",
-            f"€{saver['median']:,.0f}",
-            delta,
-            delta_color="off",
-            border=False,
-        )
+        with headline_slots[3].container(
+            border=True,
+            key="card_saver",
+        ):
+            st.metric(
+                f"Saver after {saver['years']} years (today's €)",
+                f"€{saver['median']:,.0f}",
+            )
+
+            if saver.get("chance") is not None:
+                st.markdown(
+                    f'<span class="probability-badge">'
+                    f"{saver['chance']:.0%} chance of reaching "
+                    f"€{saver['goal']:,.0f}"
+                    f"</span>",
+                    unsafe_allow_html=True,
+                )
     else:
-        headline_slots[3].metric("Saver's middle outcome", "–", border=True)
+        headline_slots[3].metric(
+            "Saver's middle outcome",
+            "–",
+            border=True,
+        )
 
 
 fill_headline_numbers()

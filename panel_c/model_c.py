@@ -11,7 +11,7 @@ from scipy.optimize import minimize
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))  # find data.py and style.py
 from data import load_prices
-from style import ASSET_COLOURS
+from style import ACCENT, ASSET_COLOURS, GOLD, INK, MUTED
 
 # Default assets used to build the portfolio
 DEFAULT_TICKERS = [
@@ -277,7 +277,7 @@ def allocation_chart(allocation: pd.DataFrame) -> go.Figure:
         annotations=[dict(
             text="Portfolio<br>allocation",
             x=0.5, y=0.5, showarrow=False,
-            font=dict(size=16, color="#5A6878"),
+            font=dict(size=16, color=MUTED),
         )],
     )
     return fig
@@ -298,7 +298,7 @@ def frontier_chart(
         y=frontier["Return"],
         mode="lines+markers",
         name="Efficient frontier",
-        line=dict(color="#0E6E8C", width=3),
+        line=dict(color=ACCENT, width=3),
         marker=dict(size=4),
     ))
 
@@ -311,7 +311,7 @@ def frontier_chart(
             y=[risk_free_rate, best_return],
             mode="lines",
             name="Capital Market Line",
-            line=dict(color="#5A6878", width=2, dash="dash"),
+            line=dict(color=MUTED, width=2, dash="dash"),
         ))
 
     # A standalone asset's volatility is the square root of its variance
@@ -326,11 +326,11 @@ def frontier_chart(
         name="Single assets",
         text=list(annual_returns.index),
         textposition="top center",
-        textfont=dict(size=13, color="#5A6878"),
+        textfont=dict(size=13, color=MUTED),
         marker=dict(
             size=10,
             color="white",
-            line=dict(color="#5A6878", width=2),
+            line=dict(color=MUTED, width=2),
         ),
         hovertemplate=(
             "%{text}<br>Annual volatility: %{x:.2%}<br>"
@@ -339,12 +339,12 @@ def frontier_chart(
     ))
 
     styles = {
-        "Equal-weight portfolio": dict(size=10, color="#5A6878"),
+        "Equal-weight portfolio": dict(size=10, color=MUTED),
         "Your allocation": dict(
             symbol="diamond", size=12, color="#8E5AC8",
         ),
         "Maximum-Sharpe portfolio": dict(
-            symbol="star", size=18, color="#D99A1A",
+            symbol="star", size=18, color=GOLD,
         ),
     }
 
@@ -367,7 +367,7 @@ def frontier_chart(
 
     fig.update_layout(
         height=480,
-        font=dict(size=13, color="#13202C"),
+        font=dict(size=13, color=INK),
         xaxis=dict(
             title=dict(
                 text="Annual volatility (risk)",
@@ -770,8 +770,8 @@ def render(scenario: dict | None = None) -> None:
 
     # --- Main charts ---
     frontier_column, allocation_column = st.columns([1.35, 1])
-    frontier_box = frontier_column.container(border=True)
-    allocation_box = allocation_column.container(border=True)
+    frontier_box = frontier_column.container(border=True, key="card_p3_frontier",)
+    allocation_box = allocation_column.container(border=True,  key="card_p3_allocation",)
 
     frontier_box.markdown("**Risk vs Return (No Borrowing)**")
     allocation_box.markdown("**Optimised allocation**")
@@ -944,9 +944,9 @@ def render(scenario: dict | None = None) -> None:
                     "variable": "Portfolio",
                 },
                 color_discrete_map={
-                    "Optimised portfolio": "#0E6E8C",
-                    "60/40 shares–bonds": "#D99A1A",
-                    "SPY": "#5A6878",
+                    "Optimised portfolio": ACCENT,
+                    "60/40 shares–bonds": GOLD,
+                    "SPY": MUTED,
                 },
             )
 
