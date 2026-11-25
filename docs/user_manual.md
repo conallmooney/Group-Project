@@ -1,8 +1,75 @@
 # User Manual
 ## 1. Getting started
-TODO: how to open the dashboard
+
+Rates, Risk & Returns is an interactive financial dashboard that explores the relationship between economic conditions, interest rates, investment portfolios and future savings.
+
+**Requirements:** Python 3.11 or newer and the Python packages listed in `requirements.txt`.
+
+**Opening the dashboard locally**
+
+1. Download or clone the project repository from GitHub.
+2. Open a terminal in the project folder.
+3. Install the required packages:
+
+   `pip install -r requirements.txt`
+
+4. Launch the dashboard:
+
+   `streamlit run app.py`
+
+5. The dashboard should open automatically in your web browser. If it does not, open the local URL displayed in the terminal, normally `http://localhost:8501`.
+
+**Navigating the dashboard**
+
+The dashboard is arranged in a two-by-two layout:
+
+| Top left | Top right |
+|---|---|
+| Panel 1: Global Economy | Panel 2: Interest Rate Sensitivity |
+| Panel 3: Portfolio Optimiser | Panel 4: Savings Simulation |
+
+Start by choosing an economic scenario at the top of the dashboard. Explore each panel in numerical order to understand the economic context, compare investments, construct a portfolio and simulate future savings.
+
+The dashboard updates interactively as you change its controls.
+
+**Internet access:** an internet connection is recommended for downloading market and economic data. Saved fallback datasets support offline operation when live data sources are unavailable. No FRED API key is required.
+
+To close the application, return to the terminal and press Ctrl+C.
 ## 2. Choosing a scenario
-TODO: what the scenario switch does
+
+The macroeconomic scenario selector at the top of the dashboard allows you to explore how different economic conditions could affect investments, portfolio decisions and future savings.
+
+Choose from three predefined scenarios or create your own using the Custom option.
+
+| Scenario | Yield shock (pp) | Inflation (%) | Risk-free rate (%) |
+|---|---:|---:|---:|
+| Higher for longer | +1.50 | 3.50 | 4.75 |
+| Rate cuts | −1.50 | 2.00 | 3.00 |
+| Stagflation | +2.00 | 6.00 | 5.25 |
+| Custom (default values) | 0.00 | 2.50 | 4.00 |
+
+**What the scenarios represent**
+- **Higher for longer:** interest rates remain elevated as inflation stays above target.
+- **Rate cuts:** interest rates fall as inflation moderates.
+- **Stagflation:** high inflation combined with weak economic growth and elevated interest rates.
+- **Custom:** set your own assumptions for interest rates, inflation and the risk-free rate.
+
+**How the assumptions are used**
+- **Yield shock:** determines the estimated impact of interest-rate changes on ETFs in Panel 2 and informs portfolio analysis in Panel 3.
+- **Inflation:** affects the purchasing power of future savings in Panel 4.
+- **Risk-free rate:** provides a benchmark for evaluating risk-adjusted portfolio returns in Panel 3.
+
+**How the panels work together**
+- Panel 1 provides historical economic context.
+- Panel 2 estimates how different investments respond to the selected yield shock.
+- Panel 3 uses asset sensitivities and scenario assumptions to inform portfolio construction.
+- Panel 4 explores how savings and investments could grow over time, including the option to use the portfolio from Panel 3.
+
+Selecting a new scenario resets Panel 2's yield slider to the corresponding preset. Select Custom to enter your own assumptions.
+
+**Try it yourself:** switch from Higher for longer to Rate cuts and compare the changes in estimated ETF returns, portfolio allocations and future savings outcomes.
+
+The scenarios are hypothetical economic assumptions designed for comparison and exploration, not predictions of future economic conditions.
 ## 3. Panel 1: The global shock
 
 Shows where inflation struck around the world from 2000 to 2024, and how it related to growth, for around 190 countries. This panel shows history, so it does not change with the scenario.
@@ -47,7 +114,40 @@ Shows where inflation struck around the world from 2000 to 2024, and how it rela
 
 All values are historical World Bank data, not forecasts.
 ## 4. Panel 2: Who wins when rates move?
-TODO
+
+Shows how eight different ETFs have historically responded to changes in the US 10-year Treasury yield. A linear regression estimates each ETF's interest-rate sensitivity using historical market data from Yahoo Finance and FRED.
+
+![Panel 2: Interest Rate Sensitivity](img/p2_results.png)
+
+**Controls**
+- **Frequency:** choose daily, weekly or monthly observations to compare interest-rate sensitivity across different time intervals.
+- **Estimated from:** choose 2015, 2017, 2019 or 2021 as the starting year for the regression. All estimation periods end in 2024.
+- **Yield change (pp):** simulate a rise or fall in the 10-year Treasury yield, from −3 to +3 percentage points. For example, a move from 4% to 5% is a +1 percentage-point change.
+- **Shared scenario:** the yield slider starts at the selected economic scenario's rate shock. Moving the slider allows you to explore a custom scenario.
+
+**How to read the chart**
+- **Green bars:** ETFs with a positive estimated return impact.
+- **Red bars:** ETFs with a negative estimated return impact.
+- **Faded bars:** regressions with an R² below 0.10, meaning yield changes explain less than 10% of historical return variation.
+- **Bar labels:** the estimated percentage return impact associated with the selected yield change.
+- Hover over any bar to see its estimated impact, beta and R².
+- The headline and summary identify the best- and worst-performing ETFs under the selected rate shock.
+
+**Regression details:** expand this section to examine the statistics behind each ETF's estimated sensitivity.
+
+- **Alpha:** the estimated return when the yield change is zero.
+- **Beta:** the estimated percentage return change associated with a one-percentage-point rise in yields.
+- **R²:** the proportion of historical return variation explained by yield changes.
+- **Observations:** the number of historical data points used in the regression.
+- **Scenario impact:** beta multiplied by the selected yield shock.
+
+**Try it yourself:** move the yield slider from +1 to −1 percentage points and compare how long-term Treasury bonds (TLT) respond relative to equities, gold and energy stocks. Change the frequency or starting year to see whether the estimated relationships remain consistent.
+
+**Connection to Panel 3:** the estimated ETF sensitivities are shared with the portfolio optimisation panel, allowing the selected interest-rate scenario to inform portfolio analysis.
+
+**Data availability:** no API keys are required. If live market data cannot be downloaded, the dashboard uses saved historical ETF prices and Treasury yields from 2015–2024.
+
+All results are historical estimates based on a linear model, not forecasts or evidence of causation. Other economic factors can also influence investment returns.
 ## 5. Panel 3: Build the best portfolio
 TODO
 ## 6. Panel 4: What could it become?
@@ -73,4 +173,28 @@ Shows what someone saving every month could end up with, across 1,000 simulated 
 
 All values are a range of possible outcomes, not a forecast.
 ## 7. When something goes wrong
-TODO: messages users might see and what they mean
+
+| Problem | Possible cause | Solution |
+|---|---|---|
+| Dashboard does not launch | Missing Python packages | Run `pip install -r requirements.txt` from the project folder. |
+| Streamlit command not recognised | Streamlit is not installed or is unavailable in the current Python environment | Run `python -m streamlit run app.py` after installing the requirements. |
+| Browser does not open automatically | Browser or local server settings | Open the local URL displayed in the terminal. |
+| Live market data is unavailable | Internet connection problems or external data provider failure | The dashboard can use saved fallback datasets where available. |
+| Insufficient regression observations | The selected estimation period contains too few valid observations | Choose an earlier starting year or a higher observation frequency in Panel 2. |
+| Faded bars in Panel 2 | The regression has an R² below 0.10 | This is not an error. Interpret the estimated sensitivity with caution. |
+| Panel 3 portfolio is unavailable in Panel 4 | A portfolio has not yet been generated | Complete the portfolio optimisation in Panel 3 first. |
+| Dashboard becomes unresponsive | Data downloads or calculations are taking longer than expected | Allow time for the calculation to finish. If necessary, restart the application. |
+
+**Restarting the dashboard**
+
+Return to the terminal, press Ctrl+C and run:
+
+`streamlit run app.py`
+
+**Data reliability**
+
+Market data downloads are cached to reduce repeated requests to external providers. Saved fallback datasets improve reproducibility when live data sources are unavailable. No FRED API key is required.
+
+**Interpreting unexpected results**
+
+The dashboard uses historical data and simplified financial models. Unexpected investment outcomes do not necessarily indicate a software error. Historical relationships, portfolio estimates and simulated savings outcomes should not be interpreted as guaranteed future returns.

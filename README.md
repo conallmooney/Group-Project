@@ -95,9 +95,9 @@ A bar chart comparing the historical interest-rate sensitivity of eight ETFs (SP
 | Provider | Indicators | Access | Frequency | Licence |
 | --- | --- | --- | --- | --- |
 | [Yahoo Finance](https://finance.yahoo.com) via `yfinance` | Historical adjusted prices for SPY, TLT, GLD, XLE, XLU, QQQ, IWM, EFA | Public, no key needed | Daily prices, aggregated to weekly or monthly | Yahoo Finance terms of use |
-| [Federal Reserve Economic Data (FRED)](https://fred.stlouisfed.org/series/DGS10) | US 10-year Treasury constant-maturity yield (`DGS10`) | FRED API key required | Daily observations, aggregated to weekly or monthly | See FRED series terms |
+| [Federal Reserve Economic Data (FRED)](https://fred.stlouisfed.org/series/DGS10) | US 10-year Treasury constant-maturity yield (`DGS10`) | Public CSV endpoint, no API key required | Daily observations, aggregated to weekly or monthly | See FRED series terms |
 
-**Reliability:** market data downloads are cached using Streamlit. ETF prices and Treasury yields are aligned by date before regression, and observations with missing values are excluded. Results are recalculated when the selected frequency or start year changes. The estimated sensitivities are also shared with Panel 3 for portfolio analysis. Historical relationships are not guaranteed to hold in future scenarios.
+**Reliability:** market data downloads are cached for 24 hours using Streamlit. No API keys or credentials are required. If live downloads fail, the application uses the saved datasets in `data/fallback/etf_prices.csv` and `data/fallback/treasury_yields.csv`, covering 2015–2024. ETF percentage returns and Treasury yield changes are matched by date, and missing observations are excluded from each regression. Results are recalculated when the selected frequency or start year changes. The estimated sensitivities are also shared with Panel 3 for portfolio analysis. Historical relationships represent statistical associations rather than causal effects or forecasts of future returns.
 
 ## Panel 3: Build the best portfolio (Conall Mooney)
 
