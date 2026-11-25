@@ -1,6 +1,40 @@
 # User Manual
 ## 1. Getting started
-TODO: how to open the dashboard
+
+Rates, Risk & Returns is an interactive financial dashboard that explores the relationship between economic conditions, interest rates, investment portfolios and future savings.
+
+**Requirements:** Python 3.11 or newer and the Python packages listed in `requirements.txt`.
+
+**Opening the dashboard locally**
+
+1. Download or clone the project repository from GitHub.
+2. Open a terminal in the project folder.
+3. Install the required packages:
+
+   `pip install -r requirements.txt`
+
+4. Launch the dashboard:
+
+   `streamlit run app.py`
+
+5. The dashboard should open automatically in your web browser. If it does not, open the local URL displayed in the terminal, normally `http://localhost:8501`.
+
+**Navigating the dashboard**
+
+The dashboard is arranged in a two-by-two layout:
+
+| Top left | Top right |
+|---|---|
+| Panel 1: Global Economy | Panel 2: Interest Rate Sensitivity |
+| Panel 3: Portfolio Optimiser | Panel 4: Savings Simulation |
+
+Start by choosing an economic scenario at the top of the dashboard. Explore each panel in numerical order to understand the economic context, compare investments, construct a portfolio and simulate future savings.
+
+The dashboard updates interactively as you change its controls.
+
+**Internet access:** an internet connection is recommended for downloading market and economic data. Saved fallback datasets support offline operation when live data sources are unavailable. No FRED API key is required.
+
+To close the application, return to the terminal and press Ctrl+C.
 ## 2. Choosing a scenario
 
 The macroeconomic scenario selector at the top of the dashboard allows you to explore how different economic conditions could affect investments, portfolio decisions and future savings.
