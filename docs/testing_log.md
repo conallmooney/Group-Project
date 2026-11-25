@@ -21,6 +21,8 @@ Everyone adds a row when they test something, especially when it breaks
 | 15 | 22 Nov | Hannah | 3→4 | Chose "My Panel 3 portfolio" with a portfolio built in Panel 3 | Panel 4 uses Panel 3's funds | Blue "hasn't built a portfolio" box still showed; the p3_result code was on Conall's branch but not merged into main | Fail → Fixed | Conall's panel_c PR merged into main; Panel 4 now uses Panel 3's portfolio |
 | 16 | 22 Nov | Hannah | 2 | Turned Wi-Fi off, reran the full dashboard and pressed Calculate Sensitivities | All panels work from saved data | Panels 1, 3 and 4 used saved data; Panel 2 crashed with ValueError: No ETF price data was downloaded | Fail → Fixed |Eoin added saved-data fallbacks (ETF prices and Treasury yields); all four panels now work offline |
 | 17 | 22 Nov | Hannah | 2 | Known-answer tests for Panel 2's calculate_sensitivities (fake ETF that moves exactly -2 per 1-point yield change; and a 10-row history) | Beta -2, Alpha 0.5, R² 1; short history skipped | All matched; 23 tests pass | Pass | - |
+| 18 | 25 Nov | Eoin | all | Ran pytest after merging latest main into panel_b | All 23 tests pass | ModuleNotFoundError from an obsolete local test file referencing interest_rate_model_b.py | Fail → Fixed | Ran python -m pytest tests/ -v to exclude the obsolete untracked file |
+| 19 | 25 Nov | Eoin | all | Ran all 23 official automated tests on Windows (Python 3.13.14) | All pass | 23 passed in 4.26 seconds, including both Panel 2 known-answer tests | Pass | – |
 
 ## Full dashboard test plan (run after all panels are merged)
 
