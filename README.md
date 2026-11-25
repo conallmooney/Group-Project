@@ -31,26 +31,53 @@ From the main project folder:
 
 **Question:** where is each economy on inflation and growth, and how did that change year by year?
 
-An animated Gapminder-style bubble chart (inflation vs GDP growth or unemployment, bubble size = GDP,
-colour = region), with a spinning-globe view of inflation by country. Pick a year to see what happened,
-summary metrics compared with the year before, and the rank correlation between inflation and
-growth (or unemployment) with its p-value.
+An animated Gapminder-style bubble chart (inflation vs GDP growth or unemployment, bubble size = GDP, colour = region), with a rotatable globe view of inflation by country. Pick a year to see what happened, summary metrics compared with the year before (median inflation, share of countries above 5%, number of economies shrinking), and the rank correlation between inflation and growth (or unemployment) with its p-value.
 
-**Controls:** view (bubbles / globe), Y-axis, regions, highlighted country (Ireland by default),
-play / year slider, "Explain a year".
+**Controls:** view (bubbles / globe), Y-axis, regions, highlighted country (Ireland by default), play / year slider, "Explain a year".
 
-**Files:** `panel_a/model_a.py` (panel), `data.py` (shared loaders), `style.py` (shared chart style).
+**Files:** `panel_a/model_a.py` (panel), `data.py` (shared loaders), `style.py` (shared chart style), `tests/test_data.py` (tests).
 
-### Data source
+**Design choices**
+
+- **Spearman, not Pearson:** a few countries with extreme inflation would dominate a Pearson correlation; Spearman uses ranks, so they count as just the highest rank. In 2022 it finds a weak but significant negative link (ρ = −0.22, p = 0.003, 178 countries).
+- **Bubble size is GDP**, not population, because the story is about economies. This is explained on the chart and shown on hover.
+- **Honest charts:** a year is only shown if at least 80% of countries reported; countries outside the axes are named rather than hidden; a note explains why Ireland's GDP overstates its domestic economy (GNI\*).
+
+**How the globe works**
+
+The globe uses **Plotly Express** (`px.choropleth`), the same library as the bubble chart. No extra mapping library or map files are needed.
+
+1. **Countries:** each country is matched by its ISO-3 code from the World Bank (e.g. `IRL`). Plotly has world country outlines built in, so it colours the right shape automatically.
+2. **A globe, not a flat map:** setting `projection="orthographic"` draws the world as a sphere seen from space, which the user can **drag to rotate**. `update_geos` adds blue oceans and white borders, and starts the view over Europe.
+3. **Animation:** `animation_frame="year"` adds the play button and year slider, so you can watch inflation spread in 2021–22.
+4. **Fixed colour scale:** blue (low) to red (high), fixed at **0–15%** so a colour means the same thing in every year. Countries above 15% show as the darkest red, so one country with very high inflation can't stretch the scale and wash out the rest.
+
+From `globe_chart()` in `panel_a/model_a.py`:
+
+```python
+fig = px.choropleth(
+    plot_df, locations="economy", color="inflation", hover_name="name",
+    animation_frame="year", projection="orthographic",   # a draggable globe
+    color_continuous_scale="RdYlBu_r", range_color=[0, 15],  # same colours every year
+    labels={"inflation": "Inflation (%)"},
+)
+fig.update_geos(
+    showocean=True, oceancolor="#E1EFF4",
+    showcountries=True, countrycolor="white",
+    showframe=False, projection_rotation=dict(lon=-10, lat=35),  # starts over Europe
+)
+```
+
+**Data source**
 
 | Provider | Indicators | Access | Frequency | Licence |
-| --- | --- | --- | --- | --- |
-| [World Bank World Development Indicators](https://data.worldbank.org) | Inflation `FP.CPI.TOTL.ZG`, GDP growth `NY.GDP.MKTP.KD.ZG`, unemployment `SL.UEM.TOTL.ZS`, GDP `NY.GDP.MKTP.CD` | Public API via `wbgapi`, no key needed | Annual | CC BY 4.0 |
-| [Yahoo Finance](https://finance.yahoo.com) via `yfinance` | Daily adjusted prices for SPY, TLT, GLD, XLE, XLU | Public, no key | Daily, from Jan 2015 | Yahoo Finance terms of use |
+|---|---|---|---|---|
+| [World Bank World Development Indicators](https://data.worldbank.org/) | Inflation `FP.CPI.TOTL.ZG`, GDP growth `NY.GDP.MKTP.KD.ZG`, unemployment `SL.UEM.TOTL.ZS`, GDP `NY.GDP.MKTP.CD` | Public API via `wbgapi`, no key needed | Annual | CC BY 4.0 |
+| [Yahoo Finance](https://finance.yahoo.com/) via `yfinance` | Daily adjusted prices for SPY, TLT, GLD, XLE, XLU, QQQ, IWM, EFA | Public, no key | Daily, from Jan 2015 | Yahoo Finance terms of use |
 
-**Reliability:** downloads are cached for a day. If the World Bank doesn't reply within 20 seconds,
-or returns incomplete data, the panel uses the saved snapshot in `data/fallback/world_bank.csv`
-and says so on screen. Refresh the snapshot with `python data.py`.
+**Reliability:** downloads are cached for a day. `data.py` requests one indicator at a time, with retries. If the World Bank doesn't reply within 30 seconds, or returns incomplete data, the panel uses the saved snapshot in `data/fallback/world_bank.csv` and says so on screen. Refresh the snapshot with `python data.py`.
+
+**Tests:** `tests/test_data.py` checks that an incomplete download raises an error (so the snapshot is used), that the download is reshaped into one row per country per year, and that the snapshot has every column the panel needs. Run with `python -m pytest -v`.
 
 ## Panel 2: Who wins when rates move? (Eoin Cunningham)
 
@@ -90,13 +117,17 @@ A historical backtest fits weights using 2015–2021 data and evaluates buy-and-
 
 ## Panel 4: What could it become? (Hannah McElligott)
 
-**Question:** how much could someone saving every month end up with, in today's euros?
+**Question:** how much could someone saving every month end up with, in today's euros, and how likely are they to reach their goal?
 
-A Monte Carlo fan chart of 1,000 simulated futures, showing the bad, middle and good outcomes and the chance of reaching a savings goal. Each future either re-uses real historical months of the chosen portfolio in a random order (bootstrap) or draws from a normal distribution with the same mean and volatility, and everything is converted to today's euros using the scenario's inflation (or Ireland's latest World Bank rate by default).
+A Monte Carlo fan chart of 1,000 simulated futures, showing the bad (1 in 20), middle and good (1 in 20) outcomes and the chance of reaching a savings goal. Shaded bands show the middle 50% and 90% of outcomes, a dashed line shows the total paid in, and a dotted line marks the goal. Each future either re-uses real historical months of the chosen portfolio in a random order (bootstrap), so it includes real crashes such as 2020 and 2022, or draws from a normal distribution with the same mean and volatility (bell curve). Everything is converted to today's euros using the scenario's inflation, or Ireland's latest World Bank rate by default.
 
 **Controls:** monthly amount, years, inflation, starting amount, savings goal, a 3-question risk quiz (Cautious 30/70, Balanced 60/40, Adventurous 90/10 shares/bonds), use Panel 3's optimal portfolio instead, simulation method (bootstrap or bell curve), and "Download my projection" (CSV).
 
-**Files:** `panel_d/model_d.py` (panel), `tests/test_p4_future.py` (tests), `data.py` (shared loaders), `style.py` (shared chart style).
+**Data and assumptions:** daily adjusted SPY (shares) and TLT (bonds) prices from Yahoo Finance via `data.load_prices`, converted to monthly returns; Ireland's latest annual inflation rate from the World Bank (`FP.CPI.TOTL.ZG`) via `data.load_world_bank`. Both have saved CSV fallbacks, so the panel works offline. Prices are in USD, and exchange-rate effects, fees and taxes are ignored. Results show a range of possible outcomes based on history, not a forecast.
+
+**Connections:** uses the inflation rate from Panel 2's scenario (converted from percent to a decimal). When Panel 3's portfolio is chosen, reads `st.session_state["p3_result"]` and uses its funds, weights, expected return (converted to a compound rate), volatility and estimation dates.
+
+**Files:** `panel_d/model_d.py` (panel), `tests/test_p4_future.py` (tests), `docs/risk_quiz.md` (quiz scoring), `data.py` (shared loaders), `style.py` (shared chart style).
 
 ## Authors
 

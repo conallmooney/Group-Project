@@ -12,7 +12,7 @@ import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
 
-from style import ACCENT, INK, MUTED
+from style import ACCENT, INK, MUTED, FAN_OUTER, FAN_INNER
 from data import load_prices, load_world_bank
 
 
@@ -372,7 +372,7 @@ def render(scenario: dict) -> None:
         scenario (dict): The chosen scenario, with keys "name", "shock_pp",
             "inflation" and "rf".
     """
-    st.subheader("Panel 4 -  What could it become?")
+    st.subheader("What could it become?")
     headline_slot = st.empty()
 
     # --- Default inflation: the scenario's if it has one, else Ireland's latest real rate ---
@@ -385,13 +385,18 @@ def render(scenario: dict) -> None:
         default_inflation, wb_year = latest_inflation(world_bank)
         inflation_source = f"Ireland's latest real rate, {wb_year}, World Bank. {wb_note}"
 
+    default_pct = round(default_inflation * 100, 1)
+    if st.session_state.get("p4_inflation_default") != default_pct:
+        st.session_state["p4_inflation"] = default_pct
+        st.session_state["p4_inflation_default"] = default_pct
+
     # --- Controls ---
     # Row 1: the three sliders
     c1, c2, c3 = st.columns(3)
     monthly = c1.slider("Monthly (€)", 0, 1000, 150, step=25, key="p4_monthly")
     years = c2.slider("Years", 5, 40, 30, key="p4_years")
     inflation = c3.slider("Inflation (% a year)", 0.0, 8.0,
-                          round(default_inflation * 100, 1), step=0.1, key="p4_inflation") / 100
+                           step=0.1, key="p4_inflation") / 100
 
     # Row 2: the two amounts
     c4, c5 = st.columns(2)
@@ -465,14 +470,14 @@ def render(scenario: dict) -> None:
     fig.add_trace(go.Scatter(x=x, y=fan[5][::12], mode="lines", line=dict(width=0),
                              showlegend=False, name="Bad case"))
     fig.add_trace(go.Scatter(x=x, y=fan[95][::12], mode="lines", line=dict(width=0),
-                             fill="tonexty", fillcolor="rgba(14,110,140,0.15)",
+                             fill="tonexty", fillcolor=FAN_OUTER,
                              name="Good case"))
 
     # Darker band: the middle half of futures, between the 25th and 75th percentiles
     fig.add_trace(go.Scatter(x=x, y=fan[25][::12], mode="lines", line=dict(width=0),
                              showlegend=False, name="Lower middle"))
     fig.add_trace(go.Scatter(x=x, y=fan[75][::12], mode="lines", line=dict(width=0),
-                             fill="tonexty", fillcolor="rgba(14,110,140,0.35)",
+                             fill="tonexty", fillcolor=FAN_INNER,
                              name="Upper middle"))
     
     fig.add_trace(go.Scatter(x=x, y=fan[50][::12], mode="lines", name="Middle outcome", line=dict(color=ACCENT, width=3)))
@@ -503,6 +508,16 @@ def render(scenario: dict) -> None:
                f"forecasts, and ETF prices are in US dollars, so exchange-rate effects are ignored. "
                f"1,000 simulated futures using {method.lower()}.")
 
+    # --- Share the result with the dashboard's Overview tab and headline numbers ---
+    st.session_state["p4_result"] = {
+        "years": years,
+        "fan": {str(p): fan[p][::12].tolist() for p in (5, 25, 50, 75, 95)},
+        "paid": paid[::12].tolist(),
+        "median": float(np.median(finals)),
+        "goal": float(goal),
+        "chance": chance_of_reaching(finals, goal) if goal > 0 else None,
+        "inflation": float(inflation),
+    }
     # --- Download ---
     years_list = np.arange(years + 1)
     table = pd.DataFrame({
