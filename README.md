@@ -14,18 +14,102 @@ An interactive dashboard showing how the 2021–23 inflation shock and the rise 
 
 ## How to install and run
 
-Needs Python 3.11 or newer. From the main project folder:
+Install Python and Git before starting. Python 3.14 has been used during development; compatibility with other Python versions has not been fully verified.
 
-    pip install -r requirements.txt
-    streamlit run app.py
+An internet connection is needed to install the dependencies. Once installed, the dashboard can use the supplied data snapshots when live downloads are unavailable.
 
-No internet? Every data loader falls back to the saved CSVs in `data/fallback/`.
+### 1. Get the project
+
+Clone the repository and enter its main folder:
+
+```bash
+git clone https://github.com/conallmooney/Group-Project.git
+cd Group-Project
+```
+
+If you already have the project, open its main folder in VS Code instead.
+
+### 2. Create a virtual environment
+
+This keeps the project's packages separate from other Python projects.
+
+**macOS / Linux:**
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+**Windows Command Prompt:**
+
+```bat
+py -m venv .venv
+.venv\Scripts\activate.bat
+```
+
+### 3. Install the dependencies
+
+With the virtual environment activated:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+The package versions are specified in `requirements.txt`.
+
+### 4. Start the dashboard
+
+Run this from the main project folder, which contains `app.py`:
+
+```bash
+python -m streamlit run app.py
+```
+
+Open the Local URL printed in the terminal, usually `http://localhost:8501`.
+
+Leave the terminal running while using the dashboard. To stop the app, click inside that terminal and press **Control + C**.
+
+## Using the dashboard
+
+The **Overview** tab summarises the four panels. Open an individual panel's tab for its full charts, controls and explanations.
+
+The shared economic scenario supplies the rate shock, inflation and risk-free rate used by the relevant models. Panel 1 shows historical observations and does not change with the scenario.
+
+Panel 2 supplies asset sensitivities to Panel 3. Panel 3 publishes its optimised portfolio for use in Panel 4. In Panel 4, select **My Panel 3 portfolio** to use that result.
+
+For detailed instructions, see the [user manual](docs/user_manual.md).
+
+## Data access and offline use
+
+The current data loaders do not require API keys:
+
+- **World Bank:** public API access through `wbgapi`.
+- **Yahoo Finance:** adjusted ETF prices through `yfinance`.
+- **FRED:** public CSV download of the US 10-year Treasury yield (`DGS10`).
+
+If a live download fails, the loaders attempt to use the supplied snapshots:
+
+| Saved file | Contents |
+|---|---|
+| `data/fallback/world_bank.csv` | Country-level economic indicators |
+| `data/fallback/etf_prices.csv` | Adjusted ETF closing prices |
+| `data/fallback/treasury_yields.csv` | US 10-year Treasury yields |
+
+The dashboard displays a notice when saved data is used. Offline results reflect the dates covered by those snapshots.
+
+Keep these files in the project folder structure when copying or submitting the project.
 
 ## How to run the tests
 
-From the main project folder:
+From the main project folder, with the virtual environment activated:
 
-    python3 -m pytest -v
+```bash
+python -m pytest -v
+```
+
+The tests check selected data-processing and financial calculations. They complement manual checks of the dashboard controls and panel connections.
+
+See the [testing log](docs/testing_log.md) for recorded checks, problems and fixes.
 
 ## Panel 1: The global shock (Ciara Feeney)
 
@@ -95,7 +179,7 @@ A bar chart comparing the historical interest-rate sensitivity of eight ETFs (SP
 | Provider | Indicators | Access | Frequency | Licence |
 | --- | --- | --- | --- | --- |
 | [Yahoo Finance](https://finance.yahoo.com) via `yfinance` | Historical adjusted prices for SPY, TLT, GLD, XLE, XLU, QQQ, IWM, EFA | Public, no key needed | Daily prices, aggregated to weekly or monthly | Yahoo Finance terms of use |
-| [Federal Reserve Economic Data (FRED)](https://fred.stlouisfed.org/series/DGS10) | US 10-year Treasury constant-maturity yield (`DGS10`) | Public CSV endpoint, no API key required | Daily observations, aggregated to weekly or monthly | See FRED series terms |
+| [Federal Reserve Economic Data (FRED)](https://fred.stlouisfed.org/series/DGS10) | US 10-year Treasury constant-maturity yield (`DGS10`) | Public CSV download; no API key required | Daily observations, aggregated to weekly or monthly | See FRED series terms |
 
 **Reliability:** market data downloads are cached for 24 hours using Streamlit. No API keys or credentials are required. If live downloads fail, the application uses the saved datasets in `data/fallback/etf_prices.csv` and `data/fallback/treasury_yields.csv`, covering 2015–2024. ETF percentage returns and Treasury yield changes are matched by date, and missing observations are excluded from each regression. Results are recalculated when the selected frequency or start year changes. The estimated sensitivities are also shared with Panel 3 for portfolio analysis. Historical relationships represent statistical associations rather than causal effects or forecasts of future returns.
 
