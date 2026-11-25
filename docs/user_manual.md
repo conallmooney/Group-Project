@@ -2,7 +2,40 @@
 ## 1. Getting started
 TODO: how to open the dashboard
 ## 2. Choosing a scenario
-TODO: what the scenario switch does
+
+The macroeconomic scenario selector at the top of the dashboard allows you to explore how different economic conditions could affect investments, portfolio decisions and future savings.
+
+Choose from three predefined scenarios or create your own using the Custom option.
+
+| Scenario | Yield shock (pp) | Inflation (%) | Risk-free rate (%) |
+|---|---:|---:|---:|
+| Higher for longer | +1.50 | 3.50 | 4.75 |
+| Rate cuts | −1.50 | 2.00 | 3.00 |
+| Stagflation | +2.00 | 6.00 | 5.25 |
+| Custom (default values) | 0.00 | 2.50 | 4.00 |
+
+**What the scenarios represent**
+- **Higher for longer:** interest rates remain elevated as inflation stays above target.
+- **Rate cuts:** interest rates fall as inflation moderates.
+- **Stagflation:** high inflation combined with weak economic growth and elevated interest rates.
+- **Custom:** set your own assumptions for interest rates, inflation and the risk-free rate.
+
+**How the assumptions are used**
+- **Yield shock:** determines the estimated impact of interest-rate changes on ETFs in Panel 2 and informs portfolio analysis in Panel 3.
+- **Inflation:** affects the purchasing power of future savings in Panel 4.
+- **Risk-free rate:** provides a benchmark for evaluating risk-adjusted portfolio returns in Panel 3.
+
+**How the panels work together**
+- Panel 1 provides historical economic context.
+- Panel 2 estimates how different investments respond to the selected yield shock.
+- Panel 3 uses asset sensitivities and scenario assumptions to inform portfolio construction.
+- Panel 4 explores how savings and investments could grow over time, including the option to use the portfolio from Panel 3.
+
+Selecting a new scenario resets Panel 2's yield slider to the corresponding preset. Select Custom to enter your own assumptions.
+
+**Try it yourself:** switch from Higher for longer to Rate cuts and compare the changes in estimated ETF returns, portfolio allocations and future savings outcomes.
+
+The scenarios are hypothetical economic assumptions designed for comparison and exploration, not predictions of future economic conditions.
 ## 3. Panel 1: The global shock
 TODO
 ## 4. Panel 2: Who wins when rates move?
