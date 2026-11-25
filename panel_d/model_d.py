@@ -385,7 +385,7 @@ def render(scenario: dict) -> None:
         default_inflation, wb_year = latest_inflation(world_bank)
         inflation_source = f"Ireland's latest real rate, {wb_year}, World Bank. {wb_note}"
 
-    default_pct = round(default_inflation * 100, 1)
+    default_pct = round(default_inflation * 100, 2) 
     if st.session_state.get("p4_inflation_default") != default_pct:
         st.session_state["p4_inflation"] = default_pct
         st.session_state["p4_inflation_default"] = default_pct
@@ -396,7 +396,7 @@ def render(scenario: dict) -> None:
     monthly = c1.slider("Monthly (€)", 0, 1000, 150, step=25, key="p4_monthly")
     years = c2.slider("Years", 5, 40, 30, key="p4_years")
     inflation = c3.slider("Inflation (% a year)", 0.0, 8.0,
-                           step=0.1, key="p4_inflation") / 100
+                           step=0.05, key="p4_inflation") / 100
 
     # Row 2: the two amounts
     c4, c5 = st.columns(2)
@@ -500,7 +500,7 @@ def render(scenario: dict) -> None:
         c4.metric("Chance of goal", f"{chance_of_reaching(finals, goal):.0%}")
     st.caption("Dark band: the middle half of the 1,000 simulated futures. Light band: 90% of them. "
                "Dashed line: the money you paid in. This shows a range of possible outcomes, not a forecast.")
-    st.caption(f"Adjusted for {inflation:.1%} inflation a year (default from {inflation_source}), "
+    st.caption(f"Adjusted for {inflation * 100:g}% inflation a year (default from {inflation_source}), "
                f"so values show what the money would buy today.")
     fund_names = ", ".join(p3["tickers"]) if use_p3 else "SPY and TLT"
     st.caption(f"Source: daily {fund_names} prices from Yahoo Finance and inflation from the World Bank "
