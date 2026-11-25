@@ -144,6 +144,12 @@ def apply_dashboard_style() -> None:
             border-radius: 6px;
             padding: 4px 8px;
         }}
+        /* The outer headline cards provide the border and spacing. */
+        [class*="st-key-card_headline_"] [data-testid="stMetric"] {{
+            background: transparent;
+            border: none;
+            padding: 0;
+        }}
         </style>
         """,
         unsafe_allow_html=True,
