@@ -23,8 +23,10 @@ Everyone adds a row when they test something, especially when it breaks
 | 17 | 22 Nov | Hannah | 2 | Known-answer tests for Panel 2's calculate_sensitivities (fake ETF that moves exactly -2 per 1-point yield change; and a 10-row history) | Beta -2, Alpha 0.5, R² 1; short history skipped | All matched; 23 tests pass | Pass | - |
 | 18 | 25 Nov | Eoin | all | Ran pytest after merging latest main into panel_b | All 23 tests pass | ModuleNotFoundError from an obsolete local test file referencing interest_rate_model_b.py | Fail → Fixed | Ran python -m pytest tests/ -v to exclude the obsolete untracked file |
 | 19 | 25 Nov | Eoin | all | Ran all 23 official automated tests on Windows (Python 3.13.14) | All pass | 23 passed in 4.26 seconds, including both Panel 2 known-answer tests | Pass | – |
-| 20 | 24 Nov | Lecturer | all | Ran the dashboard and tests on the lecturer's Mac | Everything loads and passes | Setup problems on that machine: SciPy failed to load, and packages were installed into a different Python from the one running the tests | Fail | Reinstalled SciPy; install and run with the same Python (python3 -m pip, python3 -m pytest) |
+| 20 | 24 Nov | Lecturer | all | Ran the dashboard and tests on the lecturer's Mac | Everything loads and passes | Setup problems on that machine: SciPy failed to load, and packages were installed into a different Python from the one running the tests | Fail → Fixed | Setup steps in README and user manual now use a virtual environment and python -m; confirmed by a fresh clone and setup (row 22) |
 | 21 | 25 Nov | Hannah | 4 | Set Custom scenario inflation to 1.25 | Panel 4 shows 1.25 | Showed 1.20 (slider rounded to one decimal) | Fail → Fixed | Two decimals and step 0.05 |
+| 22 | 25 Nov | Hannah | all | Fresh clone into a new folder, new virtual environment, followed the README setup steps | Install succeeds, tests pass, dashboard loads | All 23 tests passed; all four panels loaded | Pass | – |
+
 
 ## Full dashboard test plan (run after all panels are merged)
 
