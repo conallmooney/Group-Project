@@ -130,4 +130,28 @@ Shows what someone saving every month could end up with, across 1,000 simulated 
 
 All values are a range of possible outcomes, not a forecast.
 ## 7. When something goes wrong
-TODO: messages users might see and what they mean
+
+| Problem | Possible cause | Solution |
+|---|---|---|
+| Dashboard does not launch | Missing Python packages | Run `pip install -r requirements.txt` from the project folder. |
+| Streamlit command not recognised | Streamlit is not installed or is unavailable in the current Python environment | Run `python -m streamlit run app.py` after installing the requirements. |
+| Browser does not open automatically | Browser or local server settings | Open the local URL displayed in the terminal. |
+| Live market data is unavailable | Internet connection problems or external data provider failure | The dashboard can use saved fallback datasets where available. |
+| Insufficient regression observations | The selected estimation period contains too few valid observations | Choose an earlier starting year or a higher observation frequency in Panel 2. |
+| Faded bars in Panel 2 | The regression has an R² below 0.10 | This is not an error. Interpret the estimated sensitivity with caution. |
+| Panel 3 portfolio is unavailable in Panel 4 | A portfolio has not yet been generated | Complete the portfolio optimisation in Panel 3 first. |
+| Dashboard becomes unresponsive | Data downloads or calculations are taking longer than expected | Allow time for the calculation to finish. If necessary, restart the application. |
+
+**Restarting the dashboard**
+
+Return to the terminal, press Ctrl+C and run:
+
+`streamlit run app.py`
+
+**Data reliability**
+
+Market data downloads are cached to reduce repeated requests to external providers. Saved fallback datasets improve reproducibility when live data sources are unavailable. No FRED API key is required.
+
+**Interpreting unexpected results**
+
+The dashboard uses historical data and simplified financial models. Unexpected investment outcomes do not necessarily indicate a software error. Historical relationships, portfolio estimates and simulated savings outcomes should not be interpreted as guaranteed future returns.
