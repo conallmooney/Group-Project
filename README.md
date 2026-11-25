@@ -3,6 +3,8 @@ MIS20080 Introduction to Programming, group dashboard project.
 
 An interactive dashboard showing how the 2021–23 inflation shock and the rise in interest rates that followed affected economies, investments and what a saver's money could grow to.
 
+![The Rates, Risk & Returns dashboard, Overview tab](docs/img/overview.png)
+
 ## The four panels
 
 | # | Panel | Chart | Owner |
