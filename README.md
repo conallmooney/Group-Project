@@ -213,11 +213,32 @@ A Monte Carlo fan chart of 1,000 simulated futures, showing the bad (1 in 20), m
 
 **Files:** `panel_d/model_d.py` (panel), `tests/test_p4_future.py` (tests), `docs/risk_quiz.md` (quiz scoring), `data.py` (shared loaders), `style.py` (shared chart style).
 
-## Authors
 
-| Name | Panel | Shared job |
-|------|-------|------------|
-| Ciara Feeney | 1: The global shock | Data and robustness |
-| Eoin Cunningham | 2: Who wins when rates move? | Scenario and integration |
-| Conall Mooney | 3: Build the best portfolio | GitHub and deployment |
-| Hannah McElligott | 4: What could it become? | Docs and testing |
+## Authors and contributions
+
+Each member developed one principal panel and contributed to shared
+project work. Responsibilities below summarise contributions evidenced
+by the repository history; they do not represent measured hours or
+percentage shares.
+
+| Member | Individual panel | Shared project contributions | Selected evidence |
+|---|---|---|---|
+| **Ciara Feeney** | Developed the global economic panel, including animated bubbles, the rotatable globe and statistical comparisons. | Developed World Bank loading and robustness checks; established shared chart styling; implemented the overview/tab layout; pinned dependencies and contributed manual instructions and screenshots. | [Data-loader tests](https://github.com/conallmooney/Group-Project/commit/6035d07), [overview and tab layout](https://github.com/conallmooney/Group-Project/commit/26c0ed8), [dependency versions](https://github.com/conallmooney/Group-Project/commit/9d0b5a8) |
+| **Eoin Cunningham** | Developed ETF interest-rate regressions, frequency controls, scenario-impact calculations and sensitivity charts. | Developed shared scenarios and synchronised controls; integrated panel execution; consolidated market-data functions into shared modules; contributed setup, troubleshooting and integration documentation. | [Four-panel integration](https://github.com/conallmooney/Group-Project/commit/e3c7496), [shared market-data modules](https://github.com/conallmooney/Group-Project/commit/e4edc95), [scenario documentation](https://github.com/conallmooney/Group-Project/commit/707eabe) |
+| **Conall Mooney** | Developed portfolio optimisation, the efficient frontier, custom allocations, historical backtesting and the portfolio connections to Panels 2 and 4. | Established and managed the repository; reviewed and merged group changes; added portfolio price loading and fallback data; improved shared styling, card alignment, README instructions and Panel 3 documentation. | [Price loader and fallback](https://github.com/conallmooney/Group-Project/commit/5848c00), [README setup instructions](https://github.com/conallmooney/Group-Project/commit/5b6bac6), [shared theme refinements](https://github.com/conallmooney/Group-Project/commit/84f06e1) |
+| **Hannah McElligott** | Developed savings simulations, historical bootstrapping, the risk quiz, inflation-adjusted outcomes and projection downloads. | Developed and maintained automated tests and testing records; identified integration issues; implemented Panel 4 compatibility fixes; established README/manual content and contributed final documentation updates. | [Panel 3 known-answer test](https://github.com/conallmooney/Group-Project/commit/9378108), [Panel 2 regression tests](https://github.com/conallmooney/Group-Project/commit/135bbe1), [integration testing records](https://github.com/conallmooney/Group-Project/commit/93b7e03) |
+
+The linked commits are representative examples. The full Git history,
+pull requests and testing log provide further evidence of development,
+review and collaboration.
+
+## AI assistance
+
+Generative AI tools were used during development to explain programming
+concepts, suggest and navigate code, troubleshoot errors, and explore
+dashboard layouts and documentation. Team members reviewed and adapted
+suggestions, with checks recorded in the testing log. AI output was
+not treated as proof that the application was correct.
+
+Each member describes their own use in their individual learning journal.
+
