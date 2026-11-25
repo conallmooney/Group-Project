@@ -117,6 +117,8 @@ All values are historical World Bank data, not forecasts.
 
 Shows how eight different ETFs have historically responded to changes in the US 10-year Treasury yield. A linear regression estimates each ETF's interest-rate sensitivity using historical market data from Yahoo Finance and FRED.
 
+![Panel 2: Interest Rate Sensitivity](img/p2_results.png)
+
 **Controls**
 - **Frequency:** choose daily, weekly or monthly observations to compare interest-rate sensitivity across different time intervals.
 - **Estimated from:** choose 2015, 2017, 2019 or 2021 as the starting year for the regression. All estimation periods end in 2024.
